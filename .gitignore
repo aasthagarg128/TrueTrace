@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv*/
+venv/
+.scratch/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+
+# Env & secrets  — never commit these
+.env
+.env.local
+*.key
+service-account*.json
+
+# TrueTrace working data
+/tmp/
+/out/
+models/*.onnx
+models/*.bin
+services/detector/tests/fixtures/*.mp4
+services/detector/tests/fixtures/*.jpg
+
+# OS
+Thumbs.db
+.DS_Store

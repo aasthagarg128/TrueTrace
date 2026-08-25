@@ -72,3 +72,72 @@ detection is a triage hint, and must be presented as one.
 - [ ] Consider frame-score agreement as a confidence signal in its own right:
       scatter of 0.155–0.784 across one person in one video is itself evidence
       the model has no real opinion.
+
+---
+
+# Calibration against a labelled corpus (2026-08-28, later same day)
+
+The earlier section measured false positives on a handful of authentic clips.
+This section attempts the actual calibration, and reaches a harder conclusion.
+
+## Corpus
+
+`acroitoru/social_media_deepfakes` (Hugging Face, ungated, free) — real-world
+social media video, both authentic and manipulated. Chosen over FaceForensics++
+and Celeb-DF because those are access-gated with multi-day approval, and because
+this corpus matches TrueTrace's actual input distribution: compressed,
+re-encoded, real-world footage rather than clean laboratory renders.
+
+Balanced subset from the held-out **test** split: **40 real + 40 fake**, 16 frames
+sampled per video, seed 11 for reproducibility. 78 of 80 videos yielded the
+4-frame minimum; 2 correctly fell through to `INCONCLUSIVE`.
+
+## Result: the checkpoint carries no signal
+
+`prithivMLmods/Deep-Fake-Detector-v2-Model`, five aggregation strategies:
+
+| Aggregation | AUC | real mean | fake mean | separation |
+|---|---|---|---|---|
+| mean | 0.461 | 0.394 | 0.370 | **-0.025** |
+| median | 0.470 | 0.368 | 0.362 | **-0.005** |
+| max | 0.360 | 0.706 | 0.634 | **-0.072** |
+| top-50% mean | 0.445 | 0.537 | 0.496 | **-0.041** |
+| fraction ≥ 0.6 | 0.448 | 0.304 | 0.263 | **-0.041** |
+
+**Every aggregation scores at or below AUC 0.5.** 0.5 is a coin flip. The
+separation column is *negative* throughout: manipulated videos score slightly
+**lower** than authentic ones. The score distributions overlap almost exactly:
+
+```
+real quartiles:  0.101  0.159  0.288  0.552  0.768
+fake quartiles:  0.073  0.122  0.376  0.559  0.751
+```
+
+Precision sits at 0.42–0.54 at every threshold from 0.10 to 0.75 — which is just
+the corpus base rate (38/78 = 0.487). The model contributes nothing.
+
+## Why no threshold can fix this
+
+Calibration moves the operating point along a curve; it cannot create signal that
+is not there. With AUC ≈ 0.47 there is no threshold, no aggregation, and no
+confidence gate that produces a meaningful risk score. Shipping a number derived
+from this would be presenting noise as evidence — to people deciding whether they
+have been victimised.
+
+## Consequences for the build
+
+1. **Do not display a numeric risk score from this checkpoint.** Not with caveats,
+   not greyed out, not "for reference".
+2. The `INCONCLUSIVE` path is not an edge case; on this evidence it is the only
+   honest output the current detector can produce.
+3. TrueTrace's defensible value is the **evidence package** (built, sealed,
+   independently verifiable) and the **platform-correct takedown report**.
+   Detection is a research question, not a shippable feature, at this quality level.
+
+## Reproducing
+
+```bash
+python -m scripts.cache_crops --corpus <corpus> --out .scratch/crops_cache
+python -m scripts.collect_scores --corpus <corpus> --out .scratch/scores.json
+python -m scripts.calibrate --scores .scratch/scores.json
+```

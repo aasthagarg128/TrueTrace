@@ -55,10 +55,35 @@ cd services/detector && ../../.venv-detector/Scripts/python -m pytest -q
 - Gemini (once wired) receives **derived numeric signals only** - never a face,
   never the URL. The free tier is human-reviewable, so this is not optional.
 
-## Known limitations
+## Detection: measured, and currently not usable
 
-The detector produces a **risk band, never a verdict**, and returns
-`INCONCLUSIVE` rather than guessing when too few frames contain a usable face.
-The current band thresholds are **not yet calibrated** and have produced a false
-positive on authentic footage. Do not present scores to users until the
-calibration work in the findings doc is done.
+Calibrated against 40 real + 40 fake videos from a real-world social media
+corpus, the pretrained checkpoint scores **AUC 0.36-0.47 across every
+aggregation strategy** - at or below a coin flip, with *negative* separation
+between the classes.
+
+This is not a tuning problem. Calibration moves the operating point along a
+curve; it cannot manufacture signal that is not present. **No numeric risk score
+should be shown to a user on this basis.** Full numbers and method:
+[docs/detection-findings.md](docs/detection-findings.md).
+
+Consequently:
+
+- `INCONCLUSIVE` is the honest default, not an edge case.
+- The detector still returns a band, and the plumbing is sound - but the model
+  behind it needs replacing before any score reaches a person.
+- TrueTrace's working, defensible value today is the **evidence package** and
+  (next) the **platform-correct takedown report**.
+
+## Evidence packages
+
+Sealed with AES-256-GCM. The manifest hash is bound in as associated data, so a
+package cannot be re-pointed at a different manifest, and every frame carries its
+own SHA-256 so a single altered frame is detectable. Archives are reproducible:
+identical evidence yields an identical archive hash, and only the nonce varies.
+
+Anyone with the key can verify a package independently, from the file alone:
+
+```bash
+python -m truetrace.core.verify --package out/case-<id>.ttz
+```

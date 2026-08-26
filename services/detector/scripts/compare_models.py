@@ -32,6 +32,8 @@ def main() -> int:
     ap.add_argument("--cache", required=True)
     ap.add_argument("--models", nargs="+", required=True)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--max-crops", type=int, default=16,
+                    help="crops per video; fewer is faster and still answers the AUC question")
     args = ap.parse_args()
 
     cache = Path(args.cache)
@@ -43,8 +45,8 @@ def main() -> int:
 
     loaded = {}
     for r in index:
-        loaded[r["dir"]] = [Image.open(p).convert("RGB")
-                            for p in sorted((cache / r["dir"]).glob("*.png"))]
+        paths = sorted((cache / r["dir"]).glob("*.png"))[: args.max_crops]
+        loaded[r["dir"]] = [Image.open(p).convert("RGB") for p in paths]
 
     print(f"{'model':<52} {'AUC':>6} {'real':>7} {'fake':>7} {'sep':>7}")
     print("-" * 84)
@@ -77,7 +79,8 @@ def main() -> int:
                             "real_mean": round(statistics.mean(real), 4),
                             "fake_mean": round(statistics.mean(fake), 4)})
             print(f"{model_id[:52]:<52} {a:>6.3f} {statistics.mean(real):>7.3f} "
-                  f"{statistics.mean(fake):>7.3f} {statistics.mean(fake)-statistics.mean(real):>7.3f}")
+                  f"{statistics.mean(fake):>7.3f} "
+                  f"{statistics.mean(fake)-statistics.mean(real):>7.3f}", flush=True)
         except Exception as e:
             print(f"{model_id[:52]:<52}  FAILED: {str(e)[:60]}")
 

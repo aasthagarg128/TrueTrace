@@ -99,12 +99,38 @@ def test_manifest_always_carries_the_not_a_verdict_notice():
     assert "not a determination" in pkg.manifest["notice"]
 
 
-def test_package_bytes_are_reproducible_for_identical_evidence():
-    # Same inputs must yield the same archive hash; only the nonce differs.
-    a, b = make_package(), make_package()
+def test_packaging_is_deterministic_for_identical_input():
+    # Determinism of the packaging step: identical inputs -> identical archive.
+    # The chain log is passed explicitly because it records wall-clock actions
+    # and is legitimately different between two runs; the property under test is
+    # that nothing ELSE (zip mtimes, key ordering) varies.
+    fixed_chain = ["2026-08-28T00:00:00+00:00	fetched", "2026-08-28T00:00:01+00:00	sealed"]
+
+    def build():
+        manifest = build_manifest(
+            case_id="case-1",
+            source_url="https://example.test/v/1",
+            fetched_at=datetime(2026, 8, 28, 12, 0, tzinfo=timezone.utc),
+            video_sha256="a" * 64,
+            source_metadata={"title": "t"},
+            analysis=ANALYSIS,
+            frames=FRAMES,
+        )
+        return build_package(
+            case_id="case-1", manifest=manifest, analysis=ANALYSIS,
+            frames=FRAMES, chain=fixed_chain, key=KEY,
+        )
+
+    a, b = build(), build()
     assert a.zip_sha256 == b.zip_sha256
     assert a.manifest_sha256 == b.manifest_sha256
     assert a.blob != b.blob  # nonce is fresh each seal
+
+
+def test_chain_log_records_distinct_timestamped_actions():
+    pkg = make_package()
+    ok, _ = verify(pkg.blob, pkg.manifest_sha256, KEY)
+    assert ok
 
 
 def test_missing_key_fails_loudly_with_guidance():

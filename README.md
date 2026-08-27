@@ -55,25 +55,48 @@ cd services/detector && ../../.venv-detector/Scripts/python -m pytest -q
 - Gemini (once wired) receives **derived numeric signals only** - never a face,
   never the URL. The free tier is human-reviewable, so this is not optional.
 
-## Detection: measured, and currently not usable
+## Detection: measured, weak, and honestly reported
 
-Calibrated against 40 real + 40 fake videos from a real-world social media
-corpus, the pretrained checkpoint scores **AUC 0.36-0.47 across every
-aggregation strategy** - at or below a coin flip, with *negative* separation
-between the classes.
+Five free checkpoints were compared on 40 real + 38 fake real-world social media
+videos. Most were useless - two scored *below* chance, one called everything
+real, another called everything fake. The best,
+`prithivMLmods/deepfake-detector-model-v1`, reaches **AUC 0.701** using the
+maximum per-frame score.
 
-This is not a tuning problem. Calibration moves the operating point along a
-curve; it cannot manufacture signal that is not present. **No numeric risk score
-should be shown to a user on this basis.** Full numbers and method:
-[docs/detection-findings.md](docs/detection-findings.md).
+(The newer "v2" model scored 0.470, below chance. Version numbers on model cards
+are not evidence.)
 
-Consequently:
+At the chosen conservative threshold of 0.90:
 
-- `INCONCLUSIVE` is the honest default, not an edge case.
-- The detector still returns a band, and the plumbing is sound - but the model
-  behind it needs replacing before any score reaches a person.
-- TrueTrace's working, defensible value today is the **evidence package** and
-  (next) the **platform-correct takedown report**.
+| | value |
+|---|---|
+| precision | 0.77 |
+| recall | 0.61 |
+| false-positive rate | 0.17 |
+
+**The output is three states, never a graded risk number.** AUC 0.701 is real
+signal, but nowhere near enough to justify "risk 0.62":
+
+- `INCONCLUSIVE` - too few usable frames; no conclusion either way.
+- `FLAGGED` - always published with "roughly 23% of flagged videos are authentic".
+- `NOT_FLAGGED` - always published with "this is NOT a finding that the video is
+  authentic; the screening misses roughly 39% of manipulated videos".
+
+That asymmetry is deliberate: a victim must never read a non-flag as reassurance.
+Method and full numbers: [docs/detection-findings.md](docs/detection-findings.md).
+
+## Takedown reports
+
+The report is grounded in **the reporting person's assertion** of non-consent plus
+cryptographic provenance - never in the detector's opinion. That is how these
+policies actually work: platforms act on the affected person's statement, and
+under the US TAKE IT DOWN Act must remove non-consensual intimate imagery,
+explicitly including AI-generated depictions, within 48 hours.
+
+Reporting routes for YouTube, Meta, X and TikTok are hand-curated and stamped
+with a `verified_on` date rather than retrieved by RAG - for four platforms that
+is more accurate, needs no index, and cannot hallucinate a reporting URL, which
+here would send someone to a dead end at their worst moment.
 
 ## Evidence packages
 

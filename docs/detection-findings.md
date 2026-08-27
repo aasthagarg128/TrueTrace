@@ -141,3 +141,76 @@ python -m scripts.cache_crops --corpus <corpus> --out .scratch/crops_cache
 python -m scripts.collect_scores --corpus <corpus> --out .scratch/scores.json
 python -m scripts.calibrate --scores .scratch/scores.json
 ```
+
+---
+
+# Checkpoint comparison and the chosen operating point (2026-08-28, final)
+
+Before concluding that free pretrained detection is unusable, five checkpoints
+were compared on the identical cached face crops from the same 78-video corpus.
+Caching crops once made each additional model cost seconds rather than minutes.
+
+| Checkpoint | AUC (median agg.) | separation | verdict |
+|---|---|---|---|
+| **`prithivMLmods/deepfake-detector-model-v1`** | **0.645** | **+0.157** | **best; selected** |
+| `prithivMLmods/Deep-Fake-Detector-v2-Model` | 0.470 | −0.005 | below chance |
+| `prithivMLmods/Deepfake-Detect-Siglip2` | 0.484 | +0.007 | calls everything real (both means ≈0.06) |
+| `Wvolf/ViT_Deepfake_Detection` | 0.498 | −0.000 | calls everything fake (both means ≈0.91) |
+| `dima806/deepfake_vs_real_image_detection` | — | — | ≥0.99 "fake" on authentic video |
+
+The newer "v2" model is worse than the "v1" it replaced. Model-card version
+numbers are not evidence.
+
+## Aggregation matters as much as the model
+
+For the selected checkpoint:
+
+| Aggregation | AUC |
+|---|---|
+| **max** | **0.701** |
+| median | 0.645 |
+| top-50% mean | 0.641 |
+| mean | 0.632 |
+| fraction ≥0.6 | 0.624 |
+
+Taking the **maximum** per-frame score beats every average. Manipulation is often
+confined to a few frames, and averaging over clean frames washes the signal out.
+
+## Chosen operating point: peak ≥ 0.90
+
+| Threshold | precision | recall | false-positive rate |
+|---|---|---|---|
+| ≥0.75 | 0.56 | 0.66 | 0.50 |
+| ≥0.85 | 0.65 | 0.63 | 0.33 |
+| **≥0.90** | **0.77** | **0.61** | **0.17** |
+
+Deliberately conservative. Falsely telling someone their authentic video looks
+manipulated is a real harm, so we accept missing more manipulations (39%) to hold
+false positives to 17%.
+
+## What the product now outputs
+
+Three states, never a graded risk number — AUC 0.701 is real signal but nowhere
+near enough to support "risk 0.62":
+
+- `INCONCLUSIVE` — too few usable frames; no conclusion in either direction.
+- `FLAGGED` — peak ≥ 0.90, published together with "roughly 23% of flagged
+  videos are in fact authentic".
+- `NOT_FLAGGED` — published together with "this is NOT a finding that the video
+  is authentic; the screening misses roughly 39% of manipulated videos".
+
+The asymmetry is deliberate. A victim must never read a non-flag as reassurance.
+
+## Honest caveat on the margin
+
+Re-running the authentic 2013 government video that originally produced a false
+HIGH now yields `NOT_FLAGGED` — but with a peak of **0.8998** against a 0.90
+threshold. Correct by 0.0002. The threshold is doing real work, and the margin is
+thin. Do not over-trust individual results near the boundary.
+
+## Standing limitation
+
+Validation used 78 videos from a single corpus. The error rates above are
+indicative, not tight estimates; a corpus this size gives roughly ±10 percentage
+points of sampling error. They are reported to users because an unquantified
+signal is worse than a roughly quantified one, not because they are precise.

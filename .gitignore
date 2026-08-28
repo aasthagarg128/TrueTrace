@@ -30,3 +30,11 @@ services/detector/tests/fixtures/*.jpg
 # OS
 Thumbs.db
 .DS_Store
+
+# Local runtime data - cases and sealed evidence never belong in git
+services/agents/data/
+services/agents/out/
+data/
+apps/web/.next/
+apps/web/node_modules/
+apps/web/.env.local

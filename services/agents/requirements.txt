@@ -6,7 +6,10 @@ python-dotenv==1.2.3
 httpx==0.28.1
 numpy==1.26.4
 opencv-python-headless==4.10.0.84
-yt-dlp==2025.1.15
+# Deliberately a floor, not a pin. Platform extractors break constantly and
+# yt-dlp ships fixes within days; a hard pin silently rots. A 2025 pin was
+# already failing against YouTube with "The page needs to be reloaded".
+yt-dlp>=2026.8.19
 cryptography==44.0.0
 google-genai==0.5.0
 google-cloud-firestore==2.20.0

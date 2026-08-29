@@ -30,7 +30,7 @@ export default function SubmitPage() {
         extra_context: context.trim() || null,
         owner: ownerId(),
       });
-      router.push(`/case/${case_id}`);
+      router.push(`/case?id=${case_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);

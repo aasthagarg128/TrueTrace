@@ -56,7 +56,17 @@ class YtDlpFetcher:
         workdir.mkdir(parents=True, exist_ok=True)
         opts = {
             "outtmpl": str(workdir / "source.%(ext)s"),
-            "format": f"best[height<={_MAX_HEIGHT}]/best",
+            # Video-only streams are preferred deliberately. We sample frames and
+            # never touch audio, and on YouTube the progressive (muxed) formats
+            # are capped low or absent - asking for "best" there yields
+            # "Requested format is not available" and silently degrades the whole
+            # case to a single thumbnail. Video-only also avoids needing ffmpeg
+            # to merge streams.
+            "format": (
+                f"bestvideo[height<={_MAX_HEIGHT}]"
+                f"/best[height<={_MAX_HEIGHT}]"
+                f"/bestvideo/best"
+            ),
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,

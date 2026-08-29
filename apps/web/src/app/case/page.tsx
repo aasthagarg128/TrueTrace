@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import BlurredPreview from "@/components/BlurredPreview";
 import ScreeningResult from "@/components/ScreeningResult";
 import { getCase, getReport, type Case, type Report } from "@/lib/api";
@@ -14,8 +15,25 @@ const STAGE_COPY: Record<string, string> = {
   sealing: "Sealing the evidence record",
 };
 
-export default function CasePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+/**
+ * The case id travels as a query parameter rather than a path segment.
+ *
+ * A dynamic route (/case/[id]) cannot be statically exported without
+ * generateStaticParams, and case ids are created at runtime - so a path segment
+ * would force server rendering and a paid hosting tier. A query parameter keeps
+ * this page fully static and deployable on the free tier.
+ */
+export default function CasePageRoute() {
+  return (
+    <Suspense fallback={<Notice title="Loading…" body="Fetching the case." />}>
+      <CasePage />
+    </Suspense>
+  );
+}
+
+function CasePage() {
+  const search = useSearchParams();
+  const id = search.get("id") ?? "";
   const [kase, setCase] = useState<Case | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +75,7 @@ export default function CasePage({ params }: { params: Promise<{ id: string }> }
     }
   }, [kase?.status, id, report]);
 
+  if (!id) return <Notice title="No case selected" body="This link is missing a case reference." />;
   if (error) return <Notice title="Could not load this case" body={error} />;
   if (!kase) return <Notice title="Loading…" body="Fetching the case." />;
 

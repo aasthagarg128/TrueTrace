@@ -100,6 +100,20 @@ export async function createCase(body: CreateCaseBody) {
   );
 }
 
+export interface CaseSummary {
+  case_id: string;
+  status: Case["status"];
+  source_url: string;
+  created_at: string;
+  band: Band | null;
+}
+
+export async function listCases(owner: string) {
+  return json<CaseSummary[]>(
+    await fetch(`${BASE}/cases?owner=${encodeURIComponent(owner)}`, { cache: "no-store" }),
+  );
+}
+
 export async function getCase(id: string) {
   return json<Case>(await fetch(`${BASE}/cases/${id}`, { cache: "no-store" }));
 }

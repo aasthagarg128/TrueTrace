@@ -97,6 +97,26 @@ def create_case(body: CreateCase, background: BackgroundTasks) -> dict:
     return {"case_id": case_id, "status": "queued"}
 
 
+@app.get("/cases")
+def list_cases(owner: str) -> list[dict]:
+    """Cases belonging to one pseudonymous owner id.
+
+    Returns a trimmed summary rather than the full record - notably WITHOUT the
+    preview frame, so a list view can never render someone's content back at
+    them unasked.
+    """
+    return [
+        {
+            "case_id": c["case_id"],
+            "status": c["status"],
+            "source_url": c["source_url"],
+            "created_at": c["created_at"],
+            "band": (c.get("analysis") or {}).get("band"),
+        }
+        for c in store.list_for_owner(owner)
+    ]
+
+
 @app.get("/cases/{case_id}")
 def get_case(case_id: str) -> dict:
     case = store.get(case_id)

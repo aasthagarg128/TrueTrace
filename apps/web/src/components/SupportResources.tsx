@@ -43,13 +43,13 @@ export default function SupportResources({ compact = false }: { compact?: boolea
   return (
     <section
       aria-labelledby="support-heading"
-      className="rounded-xl border border-slate-800 bg-slate-900/30 p-5"
+      className="rounded-xl border border-line bg-surface p-5"
     >
-      <h2 id="support-heading" className="text-sm font-medium text-slate-200">
+      <h2 id="support-heading" className="text-sm font-medium text-ink">
         You don&apos;t have to do this alone
       </h2>
       {!compact && (
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+        <p className="mt-1.5 text-sm leading-relaxed text-muted">
           TrueTrace handles the paperwork. These organisations help with the rest, and
           they do it for free.
         </p>
@@ -61,19 +61,19 @@ export default function SupportResources({ compact = false }: { compact?: boolea
               href={r.href}
               target="_blank"
               rel="noreferrer noopener"
-              className="text-sm font-medium text-slate-200 underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              className="text-sm font-medium text-accent underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {r.name}
             </a>
             {r.contact && (
               <a
                 href={`tel:${r.contact.replace(/[^0-9+]/g, "")}`}
-                className="ml-2 rounded bg-slate-800 px-1.5 py-0.5 font-mono text-xs text-slate-200 hover:bg-slate-700"
+                className="ml-2 rounded bg-raised px-1.5 py-0.5 font-mono text-xs text-ink hover:opacity-80"
               >
                 {r.contact}
               </a>
             )}
-            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{r.detail}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-subtle">{r.detail}</p>
           </li>
         ))}
       </ul>

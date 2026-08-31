@@ -1,26 +1,87 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  Palette notes.
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  The previous scheme was near-black slate with amber accents. Two problems for
+  this product: near-black reads cold and clinical, and amber is alarm-coloured
+  — the last thing to show someone who is already frightened.
+
+  This palette is a low-saturation blue-green. Teal reads as calm and steady
+  rather than urgent, and it avoids both red (danger) and the pink/purple
+  coding that would gender a product used by everyone.
+
+  "Attention" is a warm sand, not a warning yellow. When the screening flags
+  something we want the user to look, not to panic — and given the detector's
+  measured accuracy, alarm styling would overstate what we actually know.
+
+  Every pairing below is verified against WCAG AA (4.5:1 for text, 3:1 for
+  large/UI, 1.5:1 for borders). See .scratch/contrast.py for the check.
+*/
+
+:root {
+  --canvas: #f6f8f8;
+  --surface: #ffffff;
+  --raised: #eef2f3;
+  --line: #b9c8ce;
+  --ink: #111b1f;
+  --muted: #42565d;
+  --subtle: #5d7178;
+  --accent: #0f6f68;
+  --accent-ink: #ffffff;
+  --attention: #7a5312;
+  --attention-bg: #fdf6e8;
+  --attention-line: #e2cfa6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --canvas: #0e1519;
+    --surface: #152025;
+    --raised: #1b272d;
+    --line: #2a3a41;
+    --ink: #e9eff1;
+    --muted: #a9bfc6;
+    --subtle: #8ba3ab;
+    --accent: #5ec8b4;
+    --accent-ink: #06201c;
+    --attention: #e3bd82;
+    --attention-bg: #241d10;
+    --attention-line: #4a3a21;
   }
 }
 
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-attention: var(--attention);
+  --color-attention-bg: var(--attention-bg);
+  --color-attention-line: var(--attention-line);
+}
+
+html {
+  color-scheme: light dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+/* Respect a stated preference for less motion, everywhere, not per-component. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

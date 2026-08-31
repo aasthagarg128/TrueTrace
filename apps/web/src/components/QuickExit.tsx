@@ -56,7 +56,7 @@ export default function QuickExit() {
   return (
     <div className="flex items-center gap-2">
       {hint && (
-        <span className="hidden text-[11px] text-slate-500 sm:inline">
+        <span className="hidden text-[11px] text-subtle sm:inline">
           or press Esc three times
         </span>
       )}
@@ -65,7 +65,7 @@ export default function QuickExit() {
         onClick={exit}
         onMouseEnter={() => setHint(true)}
         onFocus={() => setHint(true)}
-        className="rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-100 ring-offset-slate-950 transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        className="rounded-md bg-raised px-3 py-1.5 text-xs font-medium text-ink ring-offset-canvas transition hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
         Quick exit
       </button>

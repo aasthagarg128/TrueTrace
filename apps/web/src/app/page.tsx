@@ -69,11 +69,11 @@ export default function SubmitPage() {
         <h1 className="text-3xl font-semibold tracking-tight">
           Someone made a video of you. Let&apos;s deal with it.
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-300">
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
           TrueTrace records proof that the content existed, then writes the takedown
           report for the platform it is on — worded the way that platform needs.
         </p>
-        <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-400">
+        <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
           <Assurance>No account or email</Assurance>
           <Assurance>Nothing to upload</Assurance>
           <Assurance>You never have to re-watch it</Assurance>
@@ -81,15 +81,15 @@ export default function SubmitPage() {
       </section>
 
       <section aria-labelledby="how-heading">
-        <h2 id="how-heading" className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <h2 id="how-heading" className="text-xs font-semibold uppercase tracking-wide text-muted">
           What happens after you paste the link
         </h2>
         <ol className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="rounded-lg border border-slate-800 bg-slate-900/30 p-4">
-              <span className="text-xs font-mono text-slate-500">{i + 1}</span>
-              <h3 className="mt-1 text-sm font-medium text-slate-200">{s.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-slate-400">{s.body}</p>
+            <li key={s.title} className="rounded-lg border border-line bg-surface p-4">
+              <span className="text-xs font-mono text-subtle">{i + 1}</span>
+              <h3 className="mt-1 text-sm font-medium text-ink">{s.title}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{s.body}</p>
             </li>
           ))}
         </ol>
@@ -97,7 +97,7 @@ export default function SubmitPage() {
 
       <form onSubmit={submit} className="space-y-6" noValidate>
         <div>
-          <label htmlFor="url" className="block text-sm font-medium text-slate-200">
+          <label htmlFor="url" className="block text-sm font-medium text-ink">
             Link to the content
           </label>
           <input
@@ -111,17 +111,17 @@ export default function SubmitPage() {
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://…"
             aria-describedby="url-help"
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            className="mt-2 w-full rounded-lg border border-line bg-raised px-3 py-3 text-sm text-ink placeholder:text-subtle focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
-          <p id="url-help" className="mt-1.5 text-xs text-slate-500">
+          <p id="url-help" className="mt-1.5 text-xs text-subtle">
             {showUrlHint
               ? "That does not look like a web address yet — it should start with https://"
               : "The video is retrieved, fingerprinted, then deleted. It is never stored or uploaded anywhere."}
           </p>
         </div>
 
-        <fieldset className="space-y-4 rounded-lg border border-slate-800 p-5">
-          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <fieldset className="space-y-4 rounded-lg border border-line p-5">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
             A few questions, so the report is right
           </legend>
 
@@ -141,28 +141,28 @@ export default function SubmitPage() {
           />
 
           <div className="pt-1">
-            <label htmlFor="j" className="block text-sm text-slate-200">
+            <label htmlFor="j" className="block text-sm text-ink">
               Where are you?
             </label>
             <select
               id="j"
               value={jurisdiction}
               onChange={(e) => setJurisdiction(e.target.value)}
-              className="mt-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              className="mt-1.5 rounded-md border border-line bg-raised px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <option value="US">United States</option>
               <option value="OTHER">Somewhere else</option>
             </select>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-subtle">
               This only changes which laws the report can cite.
             </p>
           </div>
         </fieldset>
 
-        <details className="rounded-lg border border-slate-800">
-          <summary className="cursor-pointer px-5 py-3 text-sm text-slate-300 hover:text-white">
+        <details className="rounded-lg border border-line">
+          <summary className="cursor-pointer px-5 py-3 text-sm text-muted hover:text-ink">
             Add context for the platform{" "}
-            <span className="text-slate-500">(optional)</span>
+            <span className="text-subtle">(optional)</span>
           </summary>
           <div className="px-5 pb-5">
             <textarea
@@ -171,9 +171,9 @@ export default function SubmitPage() {
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder="Anything that helps them understand the situation."
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              className="w-full rounded-lg border border-line bg-raised px-3 py-2.5 text-sm text-ink placeholder:text-subtle focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-subtle">
               This goes into the draft. You can edit or delete it before sending.
             </p>
           </div>
@@ -182,7 +182,7 @@ export default function SubmitPage() {
         {error && (
           <p
             role="alert"
-            className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-200"
+            className="rounded-lg border border-attention-line bg-attention-bg px-4 py-3 text-sm text-attention"
           >
             {error}
           </p>
@@ -192,11 +192,11 @@ export default function SubmitPage() {
           <button
             type="submit"
             disabled={busy || !looksLikeUrl}
-            className="rounded-lg bg-slate-100 px-6 py-3 text-sm font-medium text-slate-900 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? "Starting…" : "Start documenting"}
           </button>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-subtle">
             Usually takes under a minute. Nothing is sent to any platform.
           </span>
         </div>
@@ -210,7 +210,7 @@ export default function SubmitPage() {
 function Assurance({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-1.5">
-      <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5 text-slate-500">
+      <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5 text-subtle">
         <path
           fill="currentColor"
           d="M6.3 11.3 3.5 8.5l1-1 1.8 1.8 4.2-4.2 1 1z"
@@ -242,13 +242,13 @@ function Check({
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         aria-describedby={`${id}-hint`}
-        className="mt-1 h-4 w-4 shrink-0 accent-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+        className="mt-1 h-4 w-4 shrink-0 accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       />
       <div>
-        <label htmlFor={id} className="block cursor-pointer text-sm text-slate-200">
+        <label htmlFor={id} className="block cursor-pointer text-sm text-ink">
           {label}
         </label>
-        <span id={`${id}-hint`} className="block text-xs text-slate-500">
+        <span id={`${id}-hint`} className="block text-xs text-subtle">
           {hint}
         </span>
       </div>

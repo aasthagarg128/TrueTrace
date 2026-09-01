@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { HeroArt, IconCheck, STEP_ICONS } from "@/components/Art";
 import SupportResources from "@/components/SupportResources";
 import { createCase, ownerId } from "@/lib/api";
 
@@ -65,19 +66,25 @@ export default function SubmitPage() {
 
   return (
     <div className="space-y-12">
-      <section>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Someone made a video of you. Let&apos;s deal with it.
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-          TrueTrace records proof that the content existed, then writes the takedown
-          report for the platform it is on — worded the way that platform needs.
-        </p>
-        <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
-          <Assurance>No account or email</Assurance>
-          <Assurance>Nothing to upload</Assurance>
-          <Assurance>You never have to re-watch it</Assurance>
-        </ul>
+      <section className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
+        <div>
+          <h1 className="tt-rise text-3xl font-semibold tracking-tight sm:text-4xl">
+            Someone made a video of you.{" "}
+            <span className="text-accent">Let&apos;s deal with it.</span>
+          </h1>
+          <p className="tt-rise tt-d1 mt-4 max-w-xl text-base leading-relaxed text-muted">
+            TrueTrace records proof that the content existed, then writes the takedown
+            report for the platform it is on — worded the way that platform needs.
+          </p>
+          <ul className="tt-rise tt-d2 mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
+            <Assurance>No account or email</Assurance>
+            <Assurance>Nothing to upload</Assurance>
+            <Assurance>You never have to re-watch it</Assurance>
+          </ul>
+        </div>
+        {/* Shown at every size: a phone is the most likely context for this
+            product, so mobile should not be the one that loses the warmth. */}
+        <HeroArt className="tt-fade tt-d2 order-first mx-auto h-auto w-full max-w-xs sm:max-w-sm lg:order-last lg:max-w-none" />
       </section>
 
       <section aria-labelledby="how-heading">
@@ -85,13 +92,24 @@ export default function SubmitPage() {
           What happens after you paste the link
         </h2>
         <ol className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s, i) => (
-            <li key={s.title} className="rounded-lg border border-line bg-surface p-4">
-              <span className="text-xs font-mono text-subtle">{i + 1}</span>
-              <h3 className="mt-1 text-sm font-medium text-ink">{s.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-muted">{s.body}</p>
-            </li>
-          ))}
+          {STEPS.map((s, i) => {
+            const Icon = STEP_ICONS[i];
+            return (
+              <li
+                key={s.title}
+                className={`tt-card tt-lift tt-rise tt-d${i + 1} rounded-xl border border-line p-4`}
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-3 text-sm font-medium text-ink">
+                  <span className="mr-1.5 font-mono text-xs text-subtle">{i + 1}</span>
+                  {s.title}
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted">{s.body}</p>
+              </li>
+            );
+          })}
         </ol>
       </section>
 
@@ -120,7 +138,7 @@ export default function SubmitPage() {
           </p>
         </div>
 
-        <fieldset className="space-y-4 rounded-lg border border-line p-5">
+        <fieldset className="tt-card space-y-4 rounded-xl border border-line p-5">
           <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
             A few questions, so the report is right
           </legend>
@@ -159,7 +177,7 @@ export default function SubmitPage() {
           </div>
         </fieldset>
 
-        <details className="rounded-lg border border-line">
+        <details className="tt-card rounded-xl border border-line">
           <summary className="cursor-pointer px-5 py-3 text-sm text-muted hover:text-ink">
             Add context for the platform{" "}
             <span className="text-subtle">(optional)</span>
@@ -192,7 +210,7 @@ export default function SubmitPage() {
           <button
             type="submit"
             disabled={busy || !looksLikeUrl}
-            className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg bg-accent px-6 py-3 shadow-lg shadow-accent/20 text-sm font-medium text-accent-ink transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? "Starting…" : "Start documenting"}
           </button>
@@ -210,12 +228,7 @@ export default function SubmitPage() {
 function Assurance({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-1.5">
-      <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5 text-subtle">
-        <path
-          fill="currentColor"
-          d="M6.3 11.3 3.5 8.5l1-1 1.8 1.8 4.2-4.2 1 1z"
-        />
-      </svg>
+      <IconCheck className="h-4 w-4 text-accent" />
       {children}
     </li>
   );

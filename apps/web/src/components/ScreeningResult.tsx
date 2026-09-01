@@ -38,7 +38,7 @@ export default function ScreeningResult({ analysis }: { analysis: Analysis }) {
   const copy = COPY[analysis.band];
 
   return (
-    <section className={`rounded-xl border p-6 ${copy.tone}`}>
+    <section className={`tt-card tt-rise rounded-xl border p-6 ${copy.tone}`}>
       <h2 className={`text-lg font-medium ${copy.accent}`}>{copy.heading}</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{copy.lead}</p>
 

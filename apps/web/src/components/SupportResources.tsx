@@ -10,6 +10,8 @@
  * is worse than no helpline at all.
  */
 
+import { IconLifebuoy } from "./Art";
+
 interface Resource {
   name: string;
   href: string;
@@ -43,9 +45,12 @@ export default function SupportResources({ compact = false }: { compact?: boolea
   return (
     <section
       aria-labelledby="support-heading"
-      className="rounded-xl border border-line bg-surface p-5"
+      className="tt-card tt-rise rounded-xl border border-line p-5"
     >
-      <h2 id="support-heading" className="text-sm font-medium text-ink">
+      <h2 id="support-heading" className="flex items-center gap-2 text-sm font-medium text-ink">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent-soft text-accent">
+          <IconLifebuoy className="h-5 w-5" />
+        </span>
         You don&apos;t have to do this alone
       </h2>
       {!compact && (

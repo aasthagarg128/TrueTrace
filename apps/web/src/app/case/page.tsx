@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { IconSeal, IconSend, IconShieldOff } from "@/components/Art";
 import BlurredPreview from "@/components/BlurredPreview";
 import ScreeningResult from "@/components/ScreeningResult";
 import SupportResources from "@/components/SupportResources";
@@ -118,8 +119,9 @@ function NextStep({ report }: { report: Report }) {
   const primary = report.routes[0];
   if (!primary) return null;
   return (
-    <section className="rounded-xl border border-accent/40 bg-raised p-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+    <section className="tt-rise rounded-xl border border-accent/40 bg-accent-soft p-6">
+      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-accent">
+        <IconSend className="h-4 w-4" />
         Your next step
       </h2>
       <p className="mt-2 text-base text-ink">
@@ -168,7 +170,7 @@ function Progress({ status }: { status: string }) {
   const label = STAGES[current]?.label ?? "Getting started";
 
   return (
-    <section className="rounded-xl border border-line p-6">
+    <section className="tt-card tt-rise rounded-xl border border-line p-6">
       {/* aria-live so a screen reader announces stage changes without a refocus. */}
       <p aria-live="polite" className="text-sm text-ink">
         {label}…
@@ -194,7 +196,7 @@ function Progress({ status }: { status: string }) {
                   </svg>
                 )}
                 {state === "active" && (
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-attention motion-reduce:animate-none" />
+                  <span className="tt-breathe h-1.5 w-1.5 rounded-full bg-accent" />
                 )}
               </span>
               <span className={state === "todo" ? "text-subtle" : "text-muted"}>
@@ -215,8 +217,13 @@ function Progress({ status }: { status: string }) {
 function EvidenceCard({ kase }: { kase: Case }) {
   const ev = kase.evidence!;
   return (
-    <section className="rounded-xl border border-line p-6">
-      <h2 className="text-lg font-medium">Evidence record</h2>
+    <section className="tt-card tt-rise rounded-xl border border-line p-6">
+      <h2 className="flex items-center gap-2 text-lg font-medium">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent-soft text-accent">
+          <IconSeal className="h-5 w-5 tt-check" />
+        </span>
+        Evidence record
+      </h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
         Encrypted and sealed. Every frame carries its own fingerprint, so any later
         alteration is detectable. This matters because content often disappears once
@@ -249,7 +256,7 @@ function ReportCard({ report, caseId }: { report: Report; caseId: string }) {
   }
 
   return (
-    <section id="report" className="scroll-mt-6 rounded-xl border border-line p-6">
+    <section id="report" className="tt-card tt-rise scroll-mt-6 rounded-xl border border-line p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-lg font-medium">
           Your report{report.platform ? ` for ${report.platform}` : ""}
@@ -326,11 +333,12 @@ function FailedCase({ kase }: { kase: Case }) {
     <div className="space-y-6">
       <header>
         <p className="font-mono text-xs text-subtle">{kase.case_id}</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+        <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
+          <IconShieldOff className="h-6 w-6 shrink-0 text-attention" />
           We could not retrieve that content
         </h1>
       </header>
-      <section className="rounded-xl border border-line p-6">
+      <section className="tt-card tt-rise rounded-xl border border-line p-6">
         <p className="text-sm leading-relaxed text-muted">
           The link may be private, already removed, behind a login, or on a site we
           cannot reach automatically. This is common and it is not your fault.
@@ -377,7 +385,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
 
 function Notice({ title, body }: { title: string; body: string }) {
   return (
-    <section className="rounded-xl border border-line p-6">
+    <section className="tt-card tt-rise rounded-xl border border-line p-6">
       <h1 className="text-lg font-medium">{title}</h1>
       <p className="mt-2 text-sm text-muted">{body}</p>
     </section>

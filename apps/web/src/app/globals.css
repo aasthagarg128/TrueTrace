@@ -3,51 +3,53 @@
 /*
   Palette notes.
 
-  The previous scheme was near-black slate with amber accents. Two problems for
-  this product: near-black reads cold and clinical, and amber is alarm-coloured
-  — the last thing to show someone who is already frightened.
-
-  This palette is a low-saturation blue-green. Teal reads as calm and steady
-  rather than urgent, and it avoids both red (danger) and the pink/purple
-  coding that would gender a product used by everyone.
+  A low-saturation blue-green. Teal reads calm and steady rather than urgent,
+  and it avoids both red (danger) and the pink/purple coding that would gender a
+  product used by everyone.
 
   "Attention" is a warm sand, not a warning yellow. When the screening flags
   something we want the user to look, not to panic — and given the detector's
   measured accuracy, alarm styling would overstate what we actually know.
 
-  Every pairing below is verified against WCAG AA (4.5:1 for text, 3:1 for
-  large/UI, 1.5:1 for borders). See .scratch/contrast.py for the check.
+  Every pairing is verified against WCAG AA (4.5:1 text, 3:1 large/UI, 1.5:1
+  borders) by scripts/contrast-check.py before it ships.
 */
 
 :root {
-  --canvas: #f6f8f8;
+  --canvas: #f4f8f8;
   --surface: #ffffff;
-  --raised: #eef2f3;
+  --raised: #e9f0f1;
   --line: #b9c8ce;
   --ink: #111b1f;
-  --muted: #42565d;
-  --subtle: #5d7178;
+  --muted: #3f545b;
+  --subtle: #5a6f76;
   --accent: #0f6f68;
+  --accent-2: #2a5f86;
+  --accent-soft: #d8ecea;
   --accent-ink: #ffffff;
   --attention: #7a5312;
   --attention-bg: #fdf6e8;
   --attention-line: #e2cfa6;
+  --shadow: 0 1px 2px rgb(17 27 31 / 0.04), 0 8px 24px -12px rgb(17 27 31 / 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0e1519;
-    --surface: #152025;
-    --raised: #1b272d;
+    --canvas: #0d1418;
+    --surface: #141f24;
+    --raised: #1a262c;
     --line: #2a3a41;
     --ink: #e9eff1;
     --muted: #a9bfc6;
     --subtle: #8ba3ab;
     --accent: #5ec8b4;
+    --accent-2: #8fbde3;
+    --accent-soft: #16332f;
     --accent-ink: #06201c;
     --attention: #e3bd82;
     --attention-bg: #241d10;
     --attention-line: #4a3a21;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.7);
   }
 }
 
@@ -60,6 +62,8 @@
   --color-muted: var(--muted);
   --color-subtle: var(--subtle);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
   --color-attention: var(--attention);
   --color-attention-bg: var(--attention-bg);
@@ -71,11 +75,71 @@ html {
 }
 
 body {
-  background: var(--canvas);
+  background:
+    radial-gradient(60rem 32rem at 78% -12%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 70%),
+    radial-gradient(48rem 28rem at 8% 4%, color-mix(in oklab, var(--accent-2) 10%, transparent), transparent 70%),
+    var(--canvas);
+  background-attachment: fixed;
   color: var(--ink);
 }
 
-/* Respect a stated preference for less motion, everywhere, not per-component. */
+/* ---------- motion ----------
+   Tone rule: this product is used by people documenting abuse. Motion here is
+   for orientation and reassurance — never celebration. Nothing bounces, nothing
+   pops, and nothing draws attention to itself once it has settled. */
+
+@keyframes tt-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tt-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes tt-drift {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+@keyframes tt-ripple {
+  0%   { transform: scale(0.94); opacity: 0.35; }
+  70%  { opacity: 0.06; }
+  100% { transform: scale(1.10); opacity: 0; }
+}
+@keyframes tt-draw {
+  from { stroke-dashoffset: 34; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes tt-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+.tt-rise { animation: tt-rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.tt-fade { animation: tt-fade 0.6s ease both; }
+.tt-d1 { animation-delay: 60ms; }
+.tt-d2 { animation-delay: 120ms; }
+.tt-d3 { animation-delay: 180ms; }
+.tt-d4 { animation-delay: 240ms; }
+
+.tt-float        { animation: tt-drift 7s ease-in-out infinite; }
+.tt-float-slow   { animation: tt-drift 9s ease-in-out infinite; }
+.tt-float-slower { animation: tt-drift 11s ease-in-out infinite; }
+.tt-ring         { transform-origin: 210px 122px; animation: tt-ripple 5.5s ease-out infinite; }
+.tt-ring-2       { animation-delay: 1.8s; }
+.tt-check        { stroke-dasharray: 34; animation: tt-draw 1.1s ease-out 0.5s both; }
+.tt-breathe      { animation: tt-breathe 2.4s ease-in-out infinite; }
+
+.tt-card {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.tt-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.06), 0 16px 34px -16px rgb(0 0 0 / 0.28);
+}
+
+/* One global stop, rather than remembering motion-reduce on every element. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -84,4 +148,5 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  body { background-attachment: scroll; }
 }

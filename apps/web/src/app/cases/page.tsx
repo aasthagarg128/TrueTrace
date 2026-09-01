@@ -42,7 +42,7 @@ export default function CasesPage() {
       {cases === null && !error && <p className="text-sm text-subtle">Loading…</p>}
 
       {cases?.length === 0 && (
-        <section className="rounded-xl border border-line p-8 text-center">
+        <section className="tt-card rounded-xl border border-line p-8 text-center">
           <p className="text-sm text-muted">You have no cases yet.</p>
           <Link
             href="/"
@@ -59,7 +59,7 @@ export default function CasesPage() {
             <li key={c.case_id}>
               <Link
                 href={`/case?id=${c.case_id}`}
-                className="block rounded-xl border border-line p-4 transition hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="tt-card tt-lift block rounded-xl border border-line p-4 hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-xs text-subtle">{c.case_id}</span>

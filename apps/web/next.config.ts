@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
-// Static export keeps the app on Firebase Hosting's free Spark tier. It works
-// because no route is server-rendered: the case id travels as a query
-// parameter, not a path segment.
-const nextConfig: NextConfig = {
-  output: "export",
-};
+// Not a static export. The route structure uses real dynamic segments
+// (/cases/[caseId]), which cannot be pre-rendered because case ids are created
+// at runtime. Deploy target is Cloud Run, whose always-free tier (2M requests
+// per month) covers this comfortably — so server rendering costs nothing here.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

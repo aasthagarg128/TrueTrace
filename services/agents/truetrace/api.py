@@ -16,12 +16,22 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.responses import Response
+from pydantic import BaseModel
 
 from .adapters.fetcher import FallbackFetcher
-from .adapters.store import JsonCaseStore
+from .adapters.store import JsonCaseStore, JsonUserStore
+from .core.auth import (
+    AuthError,
+    hash_password,
+    issue_token,
+    validate_password,
+    validate_username,
+    verify_password,
+    verify_token,
+)
 from .core.crypto import EvidenceKeyError, generate_key, load_key
 from .core.detector_client import DetectorClient
 from .core.evidence import build_manifest, build_package, chain_entry
@@ -43,6 +53,11 @@ app.add_middleware(
 )
 
 store = JsonCaseStore(os.getenv("CASE_STORE", "data/cases"))
+users = JsonUserStore(os.getenv("USER_STORE", "data/users"))
+
+# Compared against when a username does not exist, so login timing does not
+# reveal whether the account is real.
+_DUMMY_HASH = hash_password("truetrace-nonexistent-account-placeholder")
 detector = DetectorClient(os.getenv("DETECTOR_URL", "http://127.0.0.1:8081"))
 
 try:
@@ -63,7 +78,6 @@ class CreateCase(BaseModel):
     reporter_name: str | None = None
     reporter_contact: str | None = None
     extra_context: str | None = None
-    owner: str = Field(default="anonymous", description="pseudonymous client id")
 
 
 @app.get("/healthz")
@@ -75,13 +89,95 @@ def healthz() -> dict:
     return {"status": "ok", "detector": det}
 
 
+
+class Credentials(BaseModel):
+    username: str
+    password: str
+
+
+def current_user(authorization: str | None = Header(default=None)) -> dict:
+    """Resolve the bearer token to a user, or 401.
+
+    Every case route depends on this. There is no anonymous path into case data:
+    a case belongs to exactly one account and is unreachable without its token.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "not signed in")
+    try:
+        user_id = verify_token(authorization.split(" ", 1)[1].strip())
+    except AuthError as exc:
+        raise HTTPException(401, str(exc)) from exc
+    user = users.get_by_id(user_id)
+    if user is None:
+        raise HTTPException(401, "not signed in")
+    return user
+
+
+def _public(user: dict) -> dict:
+    """Never return the password hash, not even to its owner."""
+    return {
+        "user_id": user["user_id"],
+        "username": user["username"],
+        "created_at": user["created_at"],
+    }
+
+
+@app.post("/auth/signup", status_code=201)
+def signup(body: Credentials) -> dict:
+    try:
+        validate_username(body.username)
+        validate_password(body.password)
+    except AuthError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    if users.exists(body.username):
+        # Signup unavoidably reveals that a handle is taken - there is no way to
+        # register otherwise. Login does NOT leak this; see below.
+        raise HTTPException(409, "That username is already taken.")
+
+    user = users.create(body.username, hash_password(body.password))
+    log.info("account created %s", user["user_id"])
+    return {"token": issue_token(user["user_id"]), "user": _public(user)}
+
+
+@app.post("/auth/login")
+def login(body: Credentials) -> dict:
+    user = users.get_by_username(body.username)
+    # Verify against a dummy hash when the user does not exist, so a wrong
+    # username and a wrong password take the same time and return the same
+    # error. Confirming that a handle exists is itself a leak here.
+    stored = user["password_hash"] if user else _DUMMY_HASH
+    ok = verify_password(body.password, stored)
+    if not user or not ok:
+        raise HTTPException(401, "Incorrect username or password.")
+    return {"token": issue_token(user["user_id"]), "user": _public(user)}
+
+
+@app.get("/auth/me")
+def me(user: dict = Depends(current_user)) -> dict:
+    return _public(user)
+
+
+@app.delete("/account", status_code=204, response_class=Response)
+def delete_account(user: dict = Depends(current_user)) -> Response:
+    """Remove the account. Cases are left on disk but become unreachable, since
+    every case route requires a token that can no longer be issued."""
+    users.delete(user["user_id"])
+    log.info("account deleted %s", user["user_id"])
+    return Response(status_code=204)
+
+
 @app.post("/cases", status_code=202)
-def create_case(body: CreateCase, background: BackgroundTasks) -> dict:
+def create_case(
+    body: CreateCase,
+    background: BackgroundTasks,
+    user: dict = Depends(current_user),
+) -> dict:
     case_id = f"case-{uuid.uuid4().hex[:12]}"
     store.create(
         {
             "case_id": case_id,
-            "owner": body.owner,
+            "owner": user["user_id"],
             "status": "queued",
             "source_url": body.url,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -98,7 +194,7 @@ def create_case(body: CreateCase, background: BackgroundTasks) -> dict:
 
 
 @app.get("/cases")
-def list_cases(owner: str) -> list[dict]:
+def list_cases(user: dict = Depends(current_user)) -> list[dict]:
     """Cases belonging to one pseudonymous owner id.
 
     Returns a trimmed summary rather than the full record - notably WITHOUT the
@@ -113,23 +209,31 @@ def list_cases(owner: str) -> list[dict]:
             "created_at": c["created_at"],
             "band": (c.get("analysis") or {}).get("band"),
         }
-        for c in store.list_for_owner(owner)
+        for c in store.list_for_owner(user["user_id"])
     ]
 
 
-@app.get("/cases/{case_id}")
-def get_case(case_id: str) -> dict:
+def _owned(case_id: str, user: dict) -> dict:
+    """Fetch a case, or 404 if it does not exist OR is not this user's.
+
+    Deliberately 404 rather than 403 for someone else's case: a 403 would
+    confirm the case id is real, which is exactly the kind of detail that
+    should not leak in this product.
+    """
     case = store.get(case_id)
-    if case is None:
+    if case is None or case.get("owner") != user["user_id"]:
         raise HTTPException(404, "case not found")
     return case
 
 
+@app.get("/cases/{case_id}")
+def get_case(case_id: str, user: dict = Depends(current_user)) -> dict:
+    return _owned(case_id, user)
+
+
 @app.get("/cases/{case_id}/report")
-def get_report(case_id: str) -> dict:
-    case = store.get(case_id)
-    if case is None:
-        raise HTTPException(404, "case not found")
+def get_report(case_id: str, user: dict = Depends(current_user)) -> dict:
+    case = _owned(case_id, user)
     if case.get("status") != "complete":
         raise HTTPException(409, "analysis is not finished")
 

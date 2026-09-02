@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol
@@ -84,3 +85,62 @@ class JsonCaseStore:
             self._path(case_id).write_text(
                 json.dumps(current, indent=2, default=str), encoding="utf-8"
             )
+
+
+class JsonUserStore:
+    """Pseudonymous accounts on local disk.
+
+    Usernames are stored lowercased for lookup so `Alex` and `alex` cannot both
+    be registered — near-identical handles are a real impersonation vector in a
+    product where people are already being impersonated.
+    """
+
+    def __init__(self, root: str | Path = "data/users") -> None:
+        self._root = Path(root)
+        self._root.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
+
+    def _path(self, key: str) -> Path:
+        safe = "".join(c for c in key.lower() if c.isalnum() or c in "._-")
+        return self._root / f"{safe}.json"
+
+    def exists(self, username: str) -> bool:
+        return self._path(username).exists()
+
+    def create(self, username: str, password_hash: str) -> dict:
+        with self._lock:
+            p = self._path(username)
+            if p.exists():
+                raise ValueError("username taken")
+            user = {
+                "user_id": f"u-{uuid.uuid4().hex[:12]}",
+                "username": username,
+                "password_hash": password_hash,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            p.write_text(json.dumps(user, indent=2), encoding="utf-8")
+            (self._root / f"{user['user_id']}.idx").write_text(
+                username.lower(), encoding="utf-8"
+            )
+            return user
+
+    def get_by_username(self, username: str) -> dict | None:
+        p = self._path(username)
+        if not p.exists():
+            return None
+        return json.loads(p.read_text(encoding="utf-8"))
+
+    def get_by_id(self, user_id: str) -> dict | None:
+        idx = self._root / f"{user_id}.idx"
+        if not idx.exists():
+            return None
+        return self.get_by_username(idx.read_text(encoding="utf-8").strip())
+
+    def delete(self, user_id: str) -> bool:
+        with self._lock:
+            user = self.get_by_id(user_id)
+            if not user:
+                return False
+            self._path(user["username"]).unlink(missing_ok=True)
+            (self._root / f"{user_id}.idx").unlink(missing_ok=True)
+            return True

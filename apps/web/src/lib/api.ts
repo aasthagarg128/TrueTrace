@@ -1,6 +1,12 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8080";
 
+/* ------------------------------------------------------------------ types */
+
 export type Band = "inconclusive" | "flagged" | "not_flagged";
+
+export type CaseStatus =
+  | "queued" | "fetching" | "hashing" | "sampling"
+  | "screening" | "sealing" | "complete" | "failed";
 
 export interface FrameResult {
   index: number;
@@ -35,16 +41,12 @@ export interface Evidence {
   frame_count: number;
 }
 
-export interface AuditEntry {
-  at: string;
-  action: string;
-  detail: string;
-}
+export interface AuditEntry { at: string; action: string; detail: string }
 
 export interface Case {
   case_id: string;
   owner: string;
-  status: "queued" | "fetching" | "hashing" | "sampling" | "screening" | "sealing" | "complete" | "failed";
+  status: CaseStatus;
   source_url: string;
   created_at: string;
   analysis: Analysis | null;
@@ -55,11 +57,15 @@ export interface Case {
   error: string | null;
 }
 
-export interface Route {
-  name: string;
-  url: string;
-  note: string;
+export interface CaseSummary {
+  case_id: string;
+  status: CaseStatus;
+  source_url: string;
+  created_at: string;
+  band: Band | null;
 }
+
+export interface Route { name: string; url: string; note: string }
 
 export interface Report {
   platform: string | null;
@@ -68,6 +74,12 @@ export interface Report {
   routes: Route[];
   checklist: string[];
   warnings: string[];
+}
+
+export interface User {
+  user_id: string;
+  username: string;
+  created_at: string;
 }
 
 export interface CreateCaseBody {
@@ -79,71 +91,128 @@ export interface CreateCaseBody {
   reporter_name: string | null;
   reporter_contact: string | null;
   extra_context: string | null;
-  owner: string;
 }
 
-async function json<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(detail || `${res.status} ${res.statusText}`);
+/* ------------------------------------------------------------- token store */
+
+const TOKEN_KEY = "truetrace.token";
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
   }
-  return res.json() as Promise<T>;
 }
+
+export function setToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token);
+    else window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* private mode: the session simply will not persist */
+  }
+}
+
+/* --------------------------------------------------------------- requests */
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    cache: "no-store",
+    headers: {
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init.headers ?? {}),
+    },
+  });
+
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`;
+    try {
+      const body = await res.json();
+      if (body?.detail) detail = typeof body.detail === "string" ? body.detail : detail;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+/* ------------------------------------------------------------------ auth */
+
+export async function signup(username: string, password: string) {
+  return request<{ token: string; user: User }>("/auth/signup", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function login(username: string, password: string) {
+  return request<{ token: string; user: User }>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function me() {
+  return request<User>("/auth/me");
+}
+
+export async function deleteAccount() {
+  return request<void>("/account", { method: "DELETE" });
+}
+
+/* ----------------------------------------------------------------- cases */
 
 export async function createCase(body: CreateCaseBody) {
-  return json<{ case_id: string; status: string }>(
-    await fetch(`${BASE}/cases`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }),
-  );
+  return request<{ case_id: string; status: string }>("/cases", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
-export interface CaseSummary {
-  case_id: string;
-  status: Case["status"];
-  source_url: string;
-  created_at: string;
-  band: Band | null;
-}
-
-export async function listCases(owner: string) {
-  return json<CaseSummary[]>(
-    await fetch(`${BASE}/cases?owner=${encodeURIComponent(owner)}`, { cache: "no-store" }),
-  );
+export async function listCases() {
+  return request<CaseSummary[]>("/cases");
 }
 
 export async function getCase(id: string) {
-  return json<Case>(await fetch(`${BASE}/cases/${id}`, { cache: "no-store" }));
+  return request<Case>(`/cases/${encodeURIComponent(id)}`);
 }
 
 export async function getReport(id: string) {
-  return json<Report>(await fetch(`${BASE}/cases/${id}/report`, { cache: "no-store" }));
+  return request<Report>(`/cases/${encodeURIComponent(id)}/report`);
 }
 
 export async function health() {
-  return json<{ status: string; detector: Record<string, unknown> }>(
-    await fetch(`${BASE}/healthz`, { cache: "no-store" }),
-  );
+  return request<{ status: string; detector: Record<string, unknown> }>("/healthz");
 }
 
-/**
- * A pseudonymous, client-generated identifier. No email, no profile, no sign-up.
- * Kept in localStorage so a person can return to their cases; it never leaves
- * this browser except as an opaque string on their own cases.
- */
-export function ownerId(): string {
-  if (typeof window === "undefined") return "anonymous";
-  try {
-    const k = "truetrace.owner";
-    let v = window.localStorage.getItem(k);
-    if (!v) {
-      v = crypto.randomUUID();
-      window.localStorage.setItem(k, v);
-    }
-    return v;
-  } catch {
-    return "anonymous";
-  }
+/* --------------------------------------------------------------- helpers */
+
+export const BUSY_STATUSES: CaseStatus[] = [
+  "queued", "fetching", "hashing", "sampling", "screening", "sealing",
+];
+
+export function isBusy(status: CaseStatus) {
+  return BUSY_STATUSES.includes(status);
+}
+
+/** Short, human-facing case reference: case-8f29a1b2c3d4 -> TR-8F29 */
+export function shortRef(caseId: string) {
+  const tail = caseId.replace(/^case-/, "").slice(0, 4).toUpperCase();
+  return `TR-${tail}`;
 }

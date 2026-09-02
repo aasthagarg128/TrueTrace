@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import {
   IconDraft,
@@ -40,8 +40,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Distinguishes "arrived without a session" from "just signed out".
+  // Without it the guard fires before signOut's navigation lands, and someone
+  // who chose to leave is dropped onto a login form instead of the public site.
+  const hadSession = useRef(false);
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (user) hadSession.current = true;
+  }, [user]);
+
+  useEffect(() => {
+    if (loading || user) return;
+    if (hadSession.current) return; // signOut is already navigating to "/"
+    router.replace("/login");
   }, [loading, user, router]);
 
   useEffect(() => {
@@ -52,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="grid min-h-screen place-items-center px-6">
         <p className="text-sm text-subtle">
-          {loading ? "Checking your session…" : "Redirecting to sign in…"}
+          {loading ? "Checking your session…" : "Signing you out…"}
         </p>
       </div>
     );

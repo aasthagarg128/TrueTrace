@@ -164,3 +164,137 @@ export function IconLifebuoy({ className = "" }: { className?: string }) {
 }
 
 export const STEP_ICONS = [IconLink, IconSeal, IconDraft, IconSend];
+
+/* ---------- section illustrations ---------- */
+
+/**
+ * The pipeline, drawn. This is the clearest "what does it actually do" signal
+ * on the page: frames are sampled, hashed, sealed. It animates once on view
+ * rather than looping forever — a permanent loop competes with the form.
+ */
+export function PipelineArt({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 460 140" role="img" aria-label="Frames sampled, hashed, then sealed" className={className}>
+      <defs>
+        <linearGradient id="tt-flow" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.15" />
+          <stop offset="50%" stopColor="var(--accent)" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0.15" />
+        </linearGradient>
+      </defs>
+
+      <path d="M40 70h380" stroke="url(#tt-flow)" strokeWidth="2" fill="none" />
+
+      {/* sampled frames */}
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i} className={`tt-rise tt-d${i + 1}`}>
+          <rect
+            x={44 + i * 34} y="46" width="26" height="34" rx="4"
+            fill="var(--surface)" stroke="var(--line)" strokeWidth="1.2"
+          />
+          <circle cx={57 + i * 34} cy="60" r="5" fill="var(--accent)" opacity="0.35" />
+          <path d={`M${49 + i * 34} 74h14`} stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+        </g>
+      ))}
+
+      {/* hash */}
+      <g className="tt-rise tt-d3">
+        <rect x="196" y="50" width="86" height="26" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.2" />
+        <text x="239" y="67" textAnchor="middle" fontSize="11" fontFamily="ui-monospace, monospace" fill="var(--accent)">
+          sha-256
+        </text>
+      </g>
+
+      {/* sealed record */}
+      <g className="tt-rise tt-d4">
+        <rect x="316" y="34" width="72" height="72" rx="10" fill="var(--surface)" stroke="var(--accent)" strokeWidth="1.5" />
+        <path
+          d="M338 70l9 9 18-19"
+          fill="none" stroke="var(--accent)" strokeWidth="3.5"
+          strokeLinecap="round" strokeLinejoin="round" className="tt-check"
+        />
+        <path d="M352 34v-6a10 10 0 0 1 20 0v6" fill="none" stroke="var(--accent)" strokeWidth="0" />
+      </g>
+
+      {/* travelling pulse along the line */}
+      <circle r="3.5" fill="var(--accent)" className="tt-travel">
+        <animateMotion dur="3.4s" repeatCount="indefinite" path="M40 70h380" />
+      </circle>
+    </svg>
+  );
+}
+
+/** Evidence record: a sealed, hashed document. */
+export function EvidenceArt({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 120" role="img" aria-label="A sealed evidence record" className={className}>
+      <rect x="26" y="14" width="68" height="88" rx="8" fill="var(--surface)" stroke="var(--line)" strokeWidth="1.5" />
+      <g stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" opacity="0.55">
+        <path d="M40 36h26" /><path d="M72 36h10" />
+        <path d="M40 48h16" /><path d="M62 48h20" />
+        <path d="M40 60h34" />
+      </g>
+      <circle cx="60" cy="84" r="16" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.5" />
+      <path d="M53 84.5l5 5 9.5-10" fill="none" stroke="var(--accent)" strokeWidth="2.6"
+            strokeLinecap="round" strokeLinejoin="round" className="tt-check" />
+    </svg>
+  );
+}
+
+/** Takedown report: a document heading out. */
+export function ReportArt({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 120" role="img" aria-label="A takedown report being sent" className={className}>
+      <rect x="18" y="18" width="62" height="80" rx="8" fill="var(--surface)" stroke="var(--line)" strokeWidth="1.5" />
+      <g stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" opacity="0.45">
+        <path d="M30 38h34" /><path d="M30 50h38" /><path d="M30 62h28" /><path d="M30 74h34" />
+      </g>
+      <g className="tt-float">
+        <circle cx="88" cy="42" r="20" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.5" />
+        <path d="M96 34L80 46" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M96 34l-5.6 15.4-3.3-6.1-6.1-3.3z" fill="var(--accent)" opacity="0.85" />
+      </g>
+    </svg>
+  );
+}
+
+/** Generic platform mark. Deliberately NOT a brand logo — those are trademarked,
+ *  and a wrong-looking imitation reads as untrustworthy on a page about proof. */
+export function PlatformMark({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} {...ICON}>
+      <rect x="3.5" y="5" width="17" height="14" rx="3" />
+      <path d="M10.5 9.5l4.5 2.5-4.5 2.5z" />
+    </svg>
+  );
+}
+
+export function IconLock({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} {...ICON}>
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.5" />
+      <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+    </svg>
+  );
+}
+
+export function IconClock({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} {...ICON}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 1.8" />
+    </svg>
+  );
+}
+
+export function IconIncognito({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} {...ICON}>
+      <path d="M4 11.5h16" />
+      <path d="M6.5 11.5l1.6-4.2a2 2 0 0 1 1.9-1.3h4a2 2 0 0 1 1.9 1.3l1.6 4.2" />
+      <circle cx="8" cy="15.5" r="2.8" />
+      <circle cx="16" cy="15.5" r="2.8" />
+      <path d="M10.8 15.5h2.4" />
+    </svg>
+  );
+}

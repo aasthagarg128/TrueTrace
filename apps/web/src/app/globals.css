@@ -72,6 +72,8 @@
 
 html {
   color-scheme: light dark;
+  /* Decorative overflow must never produce a horizontal scrollbar. */
+  overflow-x: clip;
 }
 
 body {
@@ -137,6 +139,50 @@ body {
 .tt-lift:hover {
   transform: translateY(-2px);
   box-shadow: 0 2px 4px rgb(0 0 0 / 0.06), 0 16px 34px -16px rgb(0 0 0 / 0.28);
+}
+
+
+/* Scroll reveal. Uses opacity+transform only, so it composites on the GPU and
+   never triggers layout. The "in" state is also the default when motion is
+   reduced — see Reveal.tsx. */
+.tt-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.55s cubic-bezier(0.2, 0.7, 0.3, 1),
+              transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1);
+  will-change: opacity, transform;
+}
+.tt-reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Travelling pulse on the pipeline diagram. */
+.tt-travel { opacity: 0.9; }
+
+/* Soft accent halo behind a section heading.
+
+   `overflow: clip` is load-bearing: the pseudo-element below deliberately
+   bleeds past its container, and without clipping that bleed added 16px of
+   horizontal page scroll at 375px. `clip` rather than `hidden` so it does not
+   create a scroll container. */
+.tt-halo { position: relative; overflow: clip; }
+.tt-halo::before {
+  content: "";
+  position: absolute;
+  inset: -30% -12% auto -12%;
+  height: 160%;
+  background: radial-gradient(
+    28rem 12rem at 30% 40%,
+    color-mix(in oklab, var(--accent) 10%, transparent),
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-reveal { opacity: 1; transform: none; }
 }
 
 /* One global stop, rather than remembering motion-reduce on every element. */

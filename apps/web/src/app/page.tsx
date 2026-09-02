@@ -2,7 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { HeroArt, IconCheck, STEP_ICONS } from "@/components/Art";
+import {
+  EvidenceArt,
+  HeroArt,
+  IconCheck,
+  IconClock,
+  IconIncognito,
+  IconLock,
+  PipelineArt,
+  PlatformMark,
+  ReportArt,
+  STEP_ICONS,
+} from "@/components/Art";
+import Reveal from "@/components/Reveal";
 import SupportResources from "@/components/SupportResources";
 import { createCase, ownerId } from "@/lib/api";
 
@@ -23,6 +35,19 @@ const STEPS = [
     title: "You send it",
     body: "You stay in control. Nothing is sent anywhere without you.",
   },
+];
+
+const TRUST = [
+  { Icon: IconLock, title: "Encrypted evidence", body: "Sealed with AES-256-GCM. Any later change to it is detectable." },
+  { Icon: IconIncognito, title: "No account, ever", body: "Pseudonymous by default. No email, no profile, no sign-up." },
+  { Icon: IconClock, title: "48-hour legal deadline", body: "US reports cite the TAKE IT DOWN Act, which platforms must meet." },
+];
+
+const PLATFORMS = [
+  { name: "YouTube", detail: "NCII removal + privacy complaint routes" },
+  { name: "Meta", detail: "Facebook, Instagram, Threads + StopNCII" },
+  { name: "X", detail: "Non-consensual nudity + statutory route" },
+  { name: "TikTok", detail: "Privacy webform + StopNCII" },
 ];
 
 export default function SubmitPage() {
@@ -112,6 +137,84 @@ export default function SubmitPage() {
           })}
         </ol>
       </section>
+
+      <Reveal>
+        <section aria-labelledby="pipeline-heading" className="tt-halo">
+          <h2 id="pipeline-heading" className="text-xs font-semibold uppercase tracking-wide text-muted">
+            What happens to the video
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+            Sixteen still frames are sampled, the file is fingerprinted, and the whole
+            record is sealed. The video itself is deleted and never uploaded anywhere.
+          </p>
+          <PipelineArt className="mt-4 h-auto w-full" />
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <section aria-labelledby="output-heading">
+          <h2 id="output-heading" className="text-xs font-semibold uppercase tracking-wide text-muted">
+            What you end up with
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <article className="tt-card tt-lift flex gap-4 rounded-xl border border-line p-5">
+              <EvidenceArt className="h-20 w-20 shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-ink">An evidence record</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  Encrypted, timestamped, with a fingerprint of every frame examined.
+                  It proves what was there even after the content is taken down.
+                </p>
+              </div>
+            </article>
+            <article className="tt-card tt-lift flex gap-4 rounded-xl border border-line p-5">
+              <ReportArt className="h-20 w-20 shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-ink">A report ready to send</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  Written for the platform it is on, citing the policy and the law that
+                  apply, with a link straight to the right reporting form.
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <section aria-labelledby="platforms-heading">
+          <h2 id="platforms-heading" className="text-xs font-semibold uppercase tracking-wide text-muted">
+            Reporting routes we know
+          </h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {PLATFORMS.map((pf) => (
+              <li key={pf.name} className="tt-card tt-lift rounded-xl border border-line p-4">
+                <PlatformMark className="h-6 w-6 text-accent" />
+                <h3 className="mt-2 text-sm font-medium text-ink">{pf.name}</h3>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted">{pf.detail}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-subtle">
+            Every route was checked against the platform&apos;s own help centre. Anywhere
+            else gets a generic report you can send to the site&apos;s abuse contact.
+          </p>
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <ul className="grid gap-4 sm:grid-cols-3">
+          {TRUST.map(({ Icon, title, body }) => (
+            <li key={title} className="tt-card rounded-xl border border-line p-5">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent">
+                <Icon className="h-5 w-5" />
+              </span>
+              <h3 className="mt-3 text-sm font-medium text-ink">{title}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{body}</p>
+            </li>
+          ))}
+        </ul>
+      </Reveal>
 
       <form onSubmit={submit} className="space-y-6" noValidate>
         <div>

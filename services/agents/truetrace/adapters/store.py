@@ -144,3 +144,45 @@ class JsonUserStore:
             self._path(user["username"]).unlink(missing_ok=True)
             (self._root / f"{user_id}.idx").unlink(missing_ok=True)
             return True
+
+    # ---- federated identity -------------------------------------------------
+    #
+    # A Google account is linked by its opaque `sub` only. No email, name, or
+    # picture is stored, so a Google-linked account is no more identifying to
+    # TrueTrace than a password one.
+
+    def _google_index(self, sub: str) -> Path:
+        safe = "".join(c for c in sub if c.isalnum())
+        return self._root / f"google-{safe}.gidx"
+
+    def get_by_google_sub(self, sub: str) -> dict | None:
+        idx = self._google_index(sub)
+        if not idx.exists():
+            return None
+        return self.get_by_username(idx.read_text(encoding="utf-8").strip())
+
+    def create_google_user(self, sub: str) -> dict:
+        """Create an account linked to a Google subject id.
+
+        The username is derived from the subject id, not from anything Google
+        told us about the person, so it carries no personal information.
+        """
+        with self._lock:
+            existing = self.get_by_google_sub(sub)
+            if existing:
+                return existing
+
+            base = f"google-{uuid.uuid4().hex[:8]}"
+            user = {
+                "user_id": f"u-{uuid.uuid4().hex[:12]}",
+                "username": base,
+                # No password hash: this account cannot be used with the
+                # username/password endpoint, and verify_password rejects it.
+                "password_hash": "",
+                "auth_provider": "google",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            self._path(base).write_text(json.dumps(user, indent=2), encoding="utf-8")
+            (self._root / f"{user['user_id']}.idx").write_text(base, encoding="utf-8")
+            self._google_index(sub).write_text(base, encoding="utf-8")
+            return user

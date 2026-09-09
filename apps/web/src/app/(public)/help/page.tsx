@@ -16,6 +16,10 @@ const FAQ = [
     a: "Yes, and that is the intended way. An account is a username and a password. We never ask for an email address, phone number, or identity document.",
   },
   {
+    q: "Should I use Google Sign-In?",
+    a: "Only if convenience matters more to you than anonymity toward Google. It is offered because some people prefer not to manage another password, and because a forgotten TrueTrace password cannot be recovered. But it tells Google you use this service, which a username and password does not. We store only an opaque account id either way — never your name or email.",
+  },
+  {
     q: "What if the screening says 'not flagged'?",
     a: "That is not a finding that the video is authentic. Automated detection misses a large share of manipulated video, so a non-flag is weak evidence. Every result is shown with its measured error rates.",
   },

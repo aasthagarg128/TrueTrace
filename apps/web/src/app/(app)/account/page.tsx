@@ -51,10 +51,18 @@ export default function AccountPage() {
               {user ? new Date(user.created_at).toLocaleString() : "—"}
             </dd>
           </div>
+          <div>
+            <dt className="text-xs text-subtle">Sign-in method</dt>
+            <dd className="mt-0.5 text-muted">
+              {user?.auth_provider === "google"
+                ? "Google — we store only an opaque account id, never your name or email"
+                : "Username and password"}
+            </dd>
+          </div>
         </dl>
         <p className="mt-5 text-sm leading-relaxed text-muted">
           That is the complete list. No email address, no phone number, no real name, no
-          date of birth, no identity document. Your password is stored only as a scrypt
+          date of birth, no identity document — including for Google accounts. Your password is stored only as a scrypt
           hash and cannot be read back by anyone, including us.
         </p>
       </section>

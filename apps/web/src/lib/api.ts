@@ -80,6 +80,12 @@ export interface User {
   user_id: string;
   username: string;
   created_at: string;
+  auth_provider?: "password" | "google";
+}
+
+export interface AuthConfig {
+  google_enabled: boolean;
+  google_client_id: string | null;
 }
 
 export interface CreateCaseBody {
@@ -165,6 +171,18 @@ export async function login(username: string, password: string) {
   return request<{ token: string; user: User }>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function authConfig() {
+  return request<AuthConfig>("/auth/config");
+}
+
+/** Exchange a Google ID token for a TrueTrace session. */
+export async function googleLogin(credential: string) {
+  return request<{ token: string; user: User; created: boolean }>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ credential }),
   });
 }
 

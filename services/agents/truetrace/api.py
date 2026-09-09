@@ -33,6 +33,12 @@ from .core.auth import (
     verify_token,
 )
 from .core.crypto import EvidenceKeyError, generate_key, load_key
+from .core.google_auth import (
+    GoogleAuthError,
+    client_id as google_client_id,
+    is_configured as google_configured,
+    verify_credential as verify_google_credential,
+)
 from .core.detector_client import DetectorClient
 from .core.evidence import build_manifest, build_package, chain_entry
 from .core.frames import sample_frames
@@ -95,6 +101,10 @@ class Credentials(BaseModel):
     password: str
 
 
+class GoogleCredential(BaseModel):
+    credential: str  # the ID token issued by Google Identity Services
+
+
 def current_user(authorization: str | None = Header(default=None)) -> dict:
     """Resolve the bearer token to a user, or 401.
 
@@ -119,6 +129,7 @@ def _public(user: dict) -> dict:
         "user_id": user["user_id"],
         "username": user["username"],
         "created_at": user["created_at"],
+        "auth_provider": user.get("auth_provider", "password"),
     }
 
 
@@ -165,6 +176,45 @@ def delete_account(user: dict = Depends(current_user)) -> Response:
     users.delete(user["user_id"])
     log.info("account deleted %s", user["user_id"])
     return Response(status_code=204)
+
+
+
+@app.get("/auth/config")
+def auth_config() -> dict:
+    """What sign-in methods this deployment offers.
+
+    The frontend renders the Google button only when this says so, rather than
+    showing a control that would fail on click.
+    """
+    return {
+        "google_enabled": google_configured(),
+        "google_client_id": google_client_id() if google_configured() else None,
+    }
+
+
+@app.post("/auth/google")
+def google_login(body: GoogleCredential) -> dict:
+    """Sign in with Google.
+
+    The credential is verified against Google's public keys before anything is
+    trusted. Only the opaque subject id is kept — no email, name, or picture is
+    stored, so a Google-linked account is no more identifying to TrueTrace than
+    a pseudonymous one. What it does cost the user is anonymity toward Google,
+    which the UI states plainly at the point of choice.
+    """
+    if not google_configured():
+        raise HTTPException(501, "Google Sign-In is not enabled on this server.")
+    try:
+        sub = verify_google_credential(body.credential)
+    except GoogleAuthError as exc:
+        raise HTTPException(401, str(exc)) from exc
+
+    user = users.get_by_google_sub(sub)
+    created = user is None
+    if user is None:
+        user = users.create_google_user(sub)
+    log.info("google sign-in %s (%s)", user["user_id"], "new" if created else "returning")
+    return {"token": issue_token(user["user_id"]), "user": _public(user), "created": created}
 
 
 @app.post("/cases", status_code=202)

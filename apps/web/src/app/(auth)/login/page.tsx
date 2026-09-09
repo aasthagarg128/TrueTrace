@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { IconLock } from "@/components/Art";
+import GoogleSignIn from "@/components/GoogleSignIn";
 import PasswordField from "@/components/PasswordField";
 import { login } from "@/lib/api";
 
@@ -83,6 +84,14 @@ export default function LoginPage() {
           {busy ? "Signing in…" : "Log in"}
         </button>
       </form>
+
+      <GoogleSignIn
+        label="signin_with"
+        onSignedIn={(token, u) => {
+          signIn(token, u);
+          router.replace("/dashboard");
+        }}
+      />
 
       <p className="mt-6 text-center text-sm text-muted">
         Don&apos;t have an account?{" "}

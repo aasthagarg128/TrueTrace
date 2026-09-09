@@ -28,8 +28,12 @@ const PROPERTIES = [
     body: "Every case belongs to exactly one account. A request for someone else's case returns 'not found' rather than 'forbidden', so the existence of a case is never confirmed to anyone but its owner.",
   },
   {
-    title: "No third-party requests",
-    body: "The interface loads no external fonts, scripts, analytics, or images. Every illustration is drawn inline. Visiting TrueTrace does not tell anyone else that you did.",
+    title: "No third-party requests, unless you choose Google",
+    body: "The interface loads no external fonts, scripts, analytics, or images, and every illustration is drawn inline. The one exception is Google Sign-In: its script loads only on the login and sign-up screens, and only when that option is enabled. If you sign in with a username, nothing on any page ever contacts Google.",
+  },
+  {
+    title: "Google Sign-In stores no personal data here",
+    body: "Google returns your name, email address and profile picture. We discard all of it and keep only the opaque account identifier, so a Google-linked account is no more identifying to TrueTrace than a pseudonymous one. What it does cost you is anonymity toward Google, who will know you use this service. A username and password avoids that entirely, and remains the recommended choice.",
   },
 ];
 
@@ -63,6 +67,11 @@ export default function PrivacyPage() {
           <li>
             Retrieving a link means our server contacts the hosting platform. That
             platform can see the request, though it learns nothing about you from it.
+          </li>
+          <li>
+            Choosing Google Sign-In tells Google that you use TrueTrace. We cannot
+            prevent that, which is why it is offered as a secondary option rather
+            than the default.
           </li>
           <li>
             Automated detection is a screening signal, never a verdict. Measured error

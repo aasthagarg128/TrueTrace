@@ -55,6 +55,26 @@ Also create `apps/web/.env.local`:
 echo NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 > apps/web/.env.local
 ```
 
+## Google Sign-In (optional)
+
+Off by default. Accounts are username + password, which is what keeps them
+pseudonymous. To enable it:
+
+1. Create an **OAuth 2.0 Client ID** (type: *Web application*) at
+   <https://console.cloud.google.com/apis/credentials>
+2. Add `http://localhost:3000` to **Authorised JavaScript origins**
+3. Put the client id in `.env` as `GOOGLE_CLIENT_ID=` and restart the API
+
+When it is blank the API rejects `/auth/google` with 501 and the UI hides the
+button, so nothing half-works. Google's script is loaded **only** when enabled,
+and only on the login and sign-up screens — someone using a password never
+causes a request to Google.
+
+Only the opaque Google subject id is stored. Name, email and picture are
+discarded on arrival, so a Google-linked account is no more identifying to
+TrueTrace than a pseudonymous one. What it costs the user is anonymity toward
+Google, which the UI states at the point of choice.
+
 ## Run
 
 Three services, each in its own terminal. Start them in this order — the API

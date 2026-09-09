@@ -3,24 +3,30 @@
 Privacy-first tooling for people whose likeness has been used in a manipulated
 video: detect it, document it as evidence, and file the right takedown report.
 
-> **Status: build in progress.** The intake -> detection -> scoring spine runs
-> end to end. See [docs/detection-findings.md](docs/detection-findings.md) for
-> measured detector accuracy before relying on any score.
+> **Status: working end to end, locally.** Public site, pseudonymous accounts,
+> and the full intake -> screening -> evidence -> report pipeline all run. See
+> [docs/detection-findings.md](docs/detection-findings.md) for measured detector
+> accuracy before relying on any screening result.
 
 ## Layout
 
 ```
-apps/web/            Next.js frontend (not yet scaffolded)
-services/detector/   CPU inference service: face crop -> risk band
-services/agents/     Intake / evidence / reporting agents
+apps/web/            Next.js app: public site, auth, and the private dashboard
+services/detector/   CPU inference: face crop -> screening band
+services/agents/     Intake, evidence, reporting; the HTTP API; accounts
 docs/                Findings and design notes
 ```
 
-The two services have **separate virtualenvs and requirements**, because
-MediaPipe pins protobuf <5 and the Google Cloud client libraries require >=5.
+The two Python services have **separate virtualenvs and requirements**, because
+MediaPipe pins protobuf <5 while the Google Cloud client libraries require >=5.
 They deploy as separate Cloud Run services, so this is not a workaround.
 
-## Setup
+## Prerequisites
+
+Python 3.11, Node 20+, and roughly 2 GB of disk for the model weights and
+dependencies. No cloud account is needed; nothing here costs anything to run.
+
+## Setup (once)
 
 ```bash
 python -m venv .venv-detector && .venv-detector/Scripts/pip install -r services/detector/requirements.txt
@@ -28,22 +34,73 @@ python -m venv .venv-detector && .venv-detector/Scripts/pip install -r services/
 ```bash
 python -m venv .venv-agents && .venv-agents/Scripts/pip install -r services/agents/requirements.txt
 ```
+```bash
+cd apps/web && npm install
+```
+
+Create `.env` in the repo root from `.env.example`. Two values must be set or
+the app falls back to per-process keys and drops all sessions and evidence
+access on restart:
+
+```bash
+cd services/agents && ../../.venv-agents/Scripts/python -c "from truetrace.core.crypto import generate_key; print('EVIDENCE_KEY=' + generate_key())"
+```
+```bash
+python -c "import secrets; print('AUTH_SECRET=' + secrets.token_urlsafe(32))"
+```
+
+Also create `apps/web/.env.local`:
+
+```bash
+echo NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 > apps/web/.env.local
+```
 
 ## Run
 
-Start the detector (first run downloads ~330 MB of model weights):
+Three services, each in its own terminal. Start them in this order — the API
+health check reports the detector as unreachable until it is up.
+
+**1. Detector** (first run downloads ~330 MB of model weights):
 ```bash
 cd services/detector && ../../.venv-detector/Scripts/python -m uvicorn app.main:app --port 8081
 ```
 
-Run the end-to-end spine against a URL:
+**2. API** (loads `.env` for the evidence key and auth secret):
 ```bash
-cd services/agents && ../../.venv-agents/Scripts/python -m truetrace.scripts.e2e --url "<video url>"
+cd services/agents && ../../.venv-agents/Scripts/python -m uvicorn truetrace.api:app --port 8080
 ```
 
-Tests:
+**3. Web app:**
+```bash
+cd apps/web && npm run dev
+```
+
+Then open `http://localhost:3000`, create an account, and start a case.
+
+Check everything is up:
+```bash
+curl -s http://127.0.0.1:8080/healthz
+```
+
+## Tests
+
 ```bash
 cd services/detector && ../../.venv-detector/Scripts/python -m pytest -q
+```
+```bash
+cd services/agents && ../../.venv-agents/Scripts/python -m pytest -q
+```
+```bash
+cd apps/web && npm run build
+```
+
+## Command-line pipeline (no web app)
+
+The whole flow also runs headless, which is the quickest way to check the
+backend without the frontend:
+
+```bash
+cd services/agents && ../../.venv-agents/Scripts/python -m truetrace.scripts.e2e --url "<video url>"
 ```
 
 ## Privacy properties currently enforced

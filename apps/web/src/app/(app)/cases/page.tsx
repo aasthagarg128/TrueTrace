@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { EmptyCasesArt } from "@/components/Art";
 import CaseCard from "@/components/CaseCard";
+import { CaseListSkeleton } from "@/components/Skeleton";
 import { listCases, type CaseSummary } from "@/lib/api";
 
 /**
@@ -31,7 +33,7 @@ export default function CasesPage() {
         </div>
         <Link
           href="/cases/new"
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
+          className="tt-press tt-focus rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
         >
           + New case
         </Link>
@@ -43,14 +45,15 @@ export default function CasesPage() {
         </p>
       )}
 
-      {cases === null && !error && <p className="text-sm text-subtle">Loading…</p>}
+      {cases === null && !error && <CaseListSkeleton rows={3} />}
 
       {cases?.length === 0 && (
-        <div className="tt-card rounded-xl border border-line p-10 text-center">
-          <p className="text-sm text-muted">You have no cases yet.</p>
+        <div className="tt-card tt-rise rounded-xl border border-line p-10 text-center">
+          <EmptyCasesArt className="mx-auto h-32 w-auto" />
+          <p className="mt-4 text-sm text-muted">You have no cases yet.</p>
           <Link
             href="/cases/new"
-            className="mt-5 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
+            className="tt-press tt-focus mt-5 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
           >
             Start a case
           </Link>

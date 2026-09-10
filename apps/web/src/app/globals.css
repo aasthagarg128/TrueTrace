@@ -185,6 +185,83 @@ body {
   .tt-reveal { opacity: 1; transform: none; }
 }
 
+
+/* ---------- loading ----------
+   A skeleton that mirrors the shape of what is coming beats a "Loading…"
+   string: the page does not jump when content lands, and the wait feels
+   shorter because the reader can already see the layout. */
+@keyframes tt-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.tt-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--raised) 0%,
+    color-mix(in oklab, var(--accent) 9%, var(--raised)) 50%,
+    var(--raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: tt-shimmer 1.6s linear infinite;
+}
+
+/* ---------- micro-interactions ----------
+   Small, physical, and quick. A control that answers the finger feels
+   trustworthy; anything slower than ~120ms reads as lag rather than feedback. */
+.tt-press { transition: transform .11s ease, filter .11s ease, box-shadow .18s ease; }
+.tt-press:hover:not(:disabled) { filter: brightness(1.04); }
+.tt-press:active:not(:disabled) { transform: translateY(1px) scale(.995); }
+
+/* A focus ring that glows rather than just outlines - easier to find when you
+   are navigating by keyboard because your hands are shaking. */
+.tt-focus:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+/* ---------- ambient ground ----------
+   Used behind the sign-in screens, which are otherwise a lone card on a flat
+   field. Two soft pools of colour, no movement: this is a page people arrive at
+   already anxious. */
+.tt-ambient {
+  position: relative;
+  isolation: isolate;
+}
+.tt-ambient::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(38rem 26rem at 18% 8%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%),
+    radial-gradient(34rem 24rem at 84% 92%, color-mix(in oklab, var(--accent-2) 13%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+/* ---------- status ----------
+   Encodes state in form as well as colour, so it survives greyscale printing
+   and colour-blindness. */
+.tt-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 999px;
+  background: currentColor; flex: none;
+}
+.tt-dot-live { box-shadow: 0 0 0 0 currentColor; animation: tt-halo-pulse 2s ease-out infinite; }
+@keyframes tt-halo-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 55%, transparent); }
+  70%  { box-shadow: 0 0 0 7px color-mix(in oklab, currentColor 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 0%, transparent); }
+}
+
+/* Counts up when a number lands, so a changed figure is noticed. */
+@keyframes tt-pop {
+  0%   { transform: scale(.86); opacity: 0; }
+  60%  { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.tt-pop { animation: tt-pop .42s cubic-bezier(.2,.7,.3,1) both; }
+
 /* One global stop, rather than remembering motion-reduce on every element. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -195,4 +272,6 @@ body {
     transition-duration: 0.01ms !important;
   }
   body { background-attachment: scroll; }
+  .tt-skeleton { animation: none; background: var(--raised); }
+  .tt-dot-live { animation: none; }
 }

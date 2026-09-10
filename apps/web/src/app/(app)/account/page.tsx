@@ -125,7 +125,7 @@ export default function AccountPage() {
               <button
                 type="button"
                 onClick={() => { setConfirming(false); setTyped(""); }}
-                className="rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink"
+                className="tt-press tt-focus rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink"
               >
                 Cancel
               </button>

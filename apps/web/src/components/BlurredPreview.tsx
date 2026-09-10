@@ -37,7 +37,7 @@ export default function BlurredPreview({ b64, alt }: { b64: string; alt: string 
             <button
               type="button"
               onClick={() => setRevealed(true)}
-              className="rounded-md border border-line px-3 py-1.5 text-sm text-ink hover:bg-raised"
+              className="tt-press tt-focus rounded-md border border-line px-3 py-1.5 text-sm text-ink hover:bg-raised"
             >
               Show this frame
             </button>

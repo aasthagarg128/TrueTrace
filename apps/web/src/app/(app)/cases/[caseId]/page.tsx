@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { IconShieldOff } from "@/components/Art";
+import { IconShieldOff, LivePipelineArt } from "@/components/Art";
+import { CaseDetailSkeleton } from "@/components/Skeleton";
 import BlurredPreview from "@/components/BlurredPreview";
 import CaseHeader from "@/components/CaseHeader";
 import ScreeningResult from "@/components/ScreeningResult";
@@ -33,7 +34,7 @@ export default function CaseOverviewPage({
   }, [kase?.status, caseId, report]);
 
   if (error) return <Notice title="Could not load this case" body={error} />;
-  if (!kase) return <Notice title="Loading…" body="Fetching the case." />;
+  if (!kase) return <CaseDetailSkeleton />;
 
   if (kase.status === "failed") {
     return (
@@ -63,7 +64,7 @@ export default function CaseOverviewPage({
           </details>
           <Link
             href="/cases/new"
-            className="mt-5 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
+            className="tt-press tt-focus mt-5 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
           >
             Try another link
           </Link>
@@ -93,13 +94,13 @@ export default function CaseOverviewPage({
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href={`/cases/${caseId}/report`}
-              className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
+              className="tt-press tt-focus rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
             >
               Open the report
             </Link>
             <Link
               href={`/cases/${caseId}/evidence`}
-              className="rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink transition hover:bg-raised"
+              className="tt-press tt-focus rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink transition hover:bg-raised"
             >
               View evidence
             </Link>
@@ -161,6 +162,7 @@ function Progress({ status }: { status: string }) {
 
   return (
     <section className="tt-card rounded-xl border border-line p-6">
+      <LivePipelineArt stage={current} className="mb-5 h-auto w-full max-w-sm" />
       <p aria-live="polite" className="text-sm text-ink">
         {STAGES[current]?.label ?? "Getting started"}…
       </p>

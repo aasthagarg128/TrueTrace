@@ -131,10 +131,35 @@ class JsonUserStore:
         return json.loads(p.read_text(encoding="utf-8"))
 
     def get_by_id(self, user_id: str) -> dict | None:
+        """Resolve a user id, rebuilding the index if it has gone missing.
+
+        The id index is a cache, not the record. Treating it as authoritative
+        produced a genuinely nasty failure: sign-in succeeded (it reads the
+        account file by username) and then every authenticated request returned
+        401 "not signed in", because only the id lookup was broken. Anyone
+        debugging that starts by suspecting tokens, which is the wrong place.
+
+        So a miss falls back to scanning the account files and rewrites the
+        index. Scanning is fine at this scale, and the Firestore backend has no
+        equivalent problem because it queries by field.
+        """
         idx = self._root / f"{user_id}.idx"
-        if not idx.exists():
-            return None
-        return self.get_by_username(idx.read_text(encoding="utf-8").strip())
+        if idx.exists():
+            user = self.get_by_username(idx.read_text(encoding="utf-8").strip())
+            if user is not None:
+                return user
+            # Index points at an account that no longer exists.
+            idx.unlink(missing_ok=True)
+
+        for path in self._root.glob("*.json"):
+            try:
+                user = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            if user.get("user_id") == user_id:
+                idx.write_text(user["username"].lower(), encoding="utf-8")
+                return user
+        return None
 
     def delete(self, user_id: str) -> bool:
         with self._lock:

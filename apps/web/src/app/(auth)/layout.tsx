@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WelcomeArt } from "@/components/Art";
 
 /**
  * Authentication chrome: a centred card and nothing else.
@@ -9,14 +10,15 @@ import Link from "next/link";
  */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 py-16">
+    <div className="tt-ambient flex min-h-screen flex-col items-center justify-center px-6 py-16">
+      <WelcomeArt className="tt-fade mb-2 h-24 w-auto" />
       <Link
         href="/"
-        className="text-lg font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="tt-focus rounded text-lg font-semibold tracking-tight focus-visible:outline-none"
       >
         TrueTrace
       </Link>
-      <main id="main" className="mt-8 w-full max-w-md">
+      <main id="main" className="tt-rise tt-d1 mt-6 w-full max-w-md">
         {children}
       </main>
       <p className="mt-8 max-w-md text-center text-xs leading-relaxed text-subtle">

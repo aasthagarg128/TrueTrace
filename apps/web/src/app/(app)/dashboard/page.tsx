@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import CaseCard from "@/components/CaseCard";
-import { IconDraft, IconLink, IconSeal } from "@/components/Art";
+import { EmptyCasesArt, IconDraft, IconLink, IconSeal } from "@/components/Art";
+import { CaseListSkeleton, StatSkeleton } from "@/components/Skeleton";
 import { listCases, isBusy, type CaseSummary } from "@/lib/api";
 
 /**
@@ -36,7 +37,7 @@ export default function DashboardPage() {
         </div>
         <Link
           href="/cases/new"
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
+          className="tt-press tt-focus rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
         >
           + New case
         </Link>
@@ -44,11 +45,19 @@ export default function DashboardPage() {
 
       <section aria-labelledby="overview">
         <h2 id="overview" className="sr-only">Overview</h2>
-        <dl className="grid gap-4 sm:grid-cols-3">
-          <Stat label="In progress" value={active} Icon={IconLink} />
-          <Stat label="Reports ready" value={ready} Icon={IconDraft} />
-          <Stat label="Monitoring" value="—" Icon={IconSeal} note="Not available yet" />
-        </dl>
+        {cases === null ? (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+          </div>
+        ) : (
+          <dl className="grid gap-4 sm:grid-cols-3">
+            <Stat label="In progress" value={active} Icon={IconLink} live={active > 0} />
+            <Stat label="Reports ready" value={ready} Icon={IconDraft} />
+            <Stat label="Monitoring" value="—" Icon={IconSeal} note="Not available yet" />
+          </dl>
+        )}
       </section>
 
       <section aria-labelledby="recent">
@@ -68,17 +77,20 @@ export default function DashboardPage() {
         )}
 
         {cases === null && !error && (
-          <p className="mt-4 text-sm text-subtle">Loading…</p>
+          <div className="mt-4">
+            <CaseListSkeleton rows={2} />
+          </div>
         )}
 
         {cases?.length === 0 && (
-          <div className="tt-card mt-4 rounded-xl border border-line p-8 text-center">
-            <p className="text-sm text-muted">
+          <div className="tt-card tt-rise mt-4 rounded-xl border border-line p-8 text-center">
+            <EmptyCasesArt className="mx-auto h-28 w-auto" />
+            <p className="mt-4 text-sm text-muted">
               You have no cases yet. When you find something, start here.
             </p>
             <Link
               href="/cases/new"
-              className="mt-5 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
+              className="tt-press tt-focus mt-5 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
             >
               Start a case
             </Link>
@@ -104,19 +116,25 @@ function Stat({
   value,
   Icon,
   note,
+  live = false,
 }: {
   label: string;
   value: number | string;
   Icon: (p: { className?: string }) => React.ReactElement;
   note?: string;
+  /** Something is genuinely running right now — worth a pulse, not decoration. */
+  live?: boolean;
 }) {
   return (
-    <div className="tt-card rounded-xl border border-line p-5">
+    <div className="tt-card tt-lift rounded-xl border border-line p-5">
       <div className="flex items-center justify-between">
-        <dt className="text-xs font-medium uppercase tracking-wide text-subtle">{label}</dt>
+        <dt className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-subtle">
+          {live && <span className="tt-dot tt-dot-live text-accent" aria-hidden />}
+          {label}
+        </dt>
         <Icon className="h-4.5 w-4.5 text-accent" />
       </div>
-      <dd className="mt-2 text-3xl font-semibold tabular-nums text-ink">{value}</dd>
+      <dd className="tt-pop mt-2 text-3xl font-semibold tabular-nums text-ink">{value}</dd>
       {note && <p className="mt-1 text-xs text-subtle">{note}</p>}
     </div>
   );

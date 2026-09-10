@@ -33,7 +33,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             {loading ? null : user ? (
               <Link
                 href="/dashboard"
-                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition hover:opacity-90"
+                className="tt-press tt-focus rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition hover:opacity-90"
               >
                 Go to dashboard
               </Link>
@@ -44,7 +44,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 </Link>
                 <Link
                   href="/signup"
-                  className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition hover:opacity-90"
+                  className="tt-press tt-focus rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition hover:opacity-90"
                 >
                   Get started
                 </Link>

@@ -298,3 +298,122 @@ export function IconIncognito({ className = "" }: { className?: string }) {
     </svg>
   );
 }
+
+/* ---------- states and moments ---------- */
+
+/**
+ * Empty case list. Calm and slightly hopeful rather than sad — an empty list
+ * here is a good state, not a failure, and the art should not imply otherwise.
+ */
+export function EmptyCasesArt({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 200 130" role="img" aria-label="No cases yet" className={className}>
+      <defs>
+        <linearGradient id="tt-empty" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--surface)" />
+          <stop offset="100%" stopColor="var(--raised)" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="100" cy="112" rx="66" ry="9" fill="var(--accent)" opacity="0.09" />
+      {[0, 1, 2].map((i) => (
+        <rect
+          key={i}
+          x={50 + i * 6} y={30 + i * 13} width={100 - i * 12} height="26" rx="6"
+          fill="url(#tt-empty)" stroke="var(--line)" strokeWidth="1.2"
+          opacity={1 - i * 0.26}
+        />
+      ))}
+      <g className="tt-float-slow">
+        <circle cx="150" cy="40" r="17" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.4" />
+        <path d="M150 32.5v15M142.5 40h15" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
+/** Sign-in art: a shield forming around a key. Protection, not surveillance. */
+export function WelcomeArt({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 160 110" role="img" aria-label="A private, protected space" className={className}>
+      <defs>
+        <linearGradient id="tt-welcome" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.26" />
+          <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0.10" />
+        </linearGradient>
+      </defs>
+      <g stroke="var(--accent)" fill="none" opacity="0.22">
+        <circle cx="80" cy="56" r="40" strokeWidth="1" className="tt-ring tt-ring-1" style={{ transformOrigin: "80px 56px" }} />
+      </g>
+      <path
+        d="M80 18l30 12v26c0 21-14 34-30 40-16-6-30-19-30-40V30z"
+        fill="url(#tt-welcome)" stroke="var(--accent)" strokeWidth="1.4"
+        className="tt-float-slower"
+      />
+      <circle cx="80" cy="52" r="9" fill="none" stroke="var(--accent)" strokeWidth="2" />
+      <path d="M80 61v13M80 68h6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/**
+ * Live pipeline for a case in progress.
+ *
+ * Replaces a static list with something that shows the work actually moving:
+ * each completed stage fills, the active one pulses, and a pulse travels the
+ * connecting line. The point is reassurance — someone waiting on this is
+ * anxious, and a page that looks frozen makes that worse.
+ */
+export function LivePipelineArt({
+  stage,
+  className = "",
+}: {
+  stage: number; // index of the active stage, -1 before anything starts
+  className?: string;
+}) {
+  const nodes = [0, 1, 2, 3, 4];
+  const x = (i: number) => 26 + i * 62;
+
+  return (
+    <svg viewBox="0 0 280 56" role="img" aria-label={`Step ${Math.max(stage + 1, 1)} of 5`} className={className}>
+      <line x1="26" y1="28" x2="274" y2="28" stroke="var(--line)" strokeWidth="2" strokeLinecap="round" />
+      {stage >= 0 && (
+        <line
+          x1="26" y1="28" x2={Math.min(x(stage), 274)} y2="28"
+          stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"
+          style={{ transition: "all .6s cubic-bezier(.2,.7,.3,1)" }}
+        />
+      )}
+
+      {nodes.map((i) => {
+        const done = stage > i;
+        const active = stage === i;
+        return (
+          <g key={i}>
+            <circle
+              cx={x(i)} cy="28" r={active ? 9 : 7}
+              fill={done ? "var(--accent)" : "var(--surface)"}
+              stroke={done || active ? "var(--accent)" : "var(--line)"}
+              strokeWidth="2"
+              style={{ transition: "all .4s ease" }}
+            />
+            {done && (
+              <path
+                d={`M${x(i) - 3.4} 28l2.6 2.6 4.6-5`}
+                fill="none" stroke="var(--accent-ink)" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round"
+              />
+            )}
+            {active && (
+              <circle
+                cx={x(i)} cy="28" r="9" fill="none"
+                stroke="var(--accent)" strokeWidth="2"
+                className="tt-ring"
+                style={{ transformOrigin: `${x(i)}px 28px` }}
+              />
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}

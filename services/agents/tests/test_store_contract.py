@@ -144,3 +144,48 @@ def test_firestore_drops_oversized_previews_rather_than_failing():
 
     small = {**make_case(), "preview_b64": "A" * 1000}
     assert FirestoreCaseStore._trim(small)["preview_b64"] == "A" * 1000
+
+
+# ------------------------------------------------- user store resilience
+
+def test_user_is_still_resolvable_after_the_index_is_lost(tmp_path):
+    """Regression: a missing id index used to give 'login works, then every
+    request 401s' — the account file was intact but only the id lookup broke."""
+    from truetrace.adapters.store import JsonUserStore
+
+    users = JsonUserStore(tmp_path)
+    created = users.create("someone", "scrypt$1$1$1$aa$bb")
+    uid = created["user_id"]
+
+    for idx in tmp_path.glob("*.idx"):
+        idx.unlink()
+
+    found = users.get_by_id(uid)
+    assert found is not None, "account became unreachable when its index vanished"
+    assert found["username"] == "someone"
+    assert (tmp_path / f"{uid}.idx").exists(), "index was not rebuilt"
+
+
+def test_index_pointing_at_a_deleted_account_is_cleaned_up(tmp_path):
+    from truetrace.adapters.store import JsonUserStore
+
+    users = JsonUserStore(tmp_path)
+    created = users.create("ghost", "scrypt$1$1$1$aa$bb")
+    uid = created["user_id"]
+
+    (tmp_path / "ghost.json").unlink()  # account removed, index left behind
+
+    assert users.get_by_id(uid) is None
+    assert not (tmp_path / f"{uid}.idx").exists(), "stale index was not removed"
+
+
+def test_corrupt_account_file_does_not_break_the_scan(tmp_path):
+    from truetrace.adapters.store import JsonUserStore
+
+    users = JsonUserStore(tmp_path)
+    good = users.create("intact", "scrypt$1$1$1$aa$bb")
+    (tmp_path / "broken.json").write_text("{ not json", encoding="utf-8")
+    for idx in tmp_path.glob("*.idx"):
+        idx.unlink()
+
+    assert users.get_by_id(good["user_id"])["username"] == "intact"

@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import CaseHeader from "@/components/CaseHeader";
+import { CaseDetailSkeleton } from "@/components/Skeleton";
 import { getReport, shortRef, type Report } from "@/lib/api";
 import { useCase } from "@/lib/useCase";
 
@@ -25,7 +26,7 @@ export default function ReportPage({
   }, [kase?.status, caseId, report]);
 
   if (error) return <Notice title="Could not load this case" body={error} />;
-  if (!kase) return <Notice title="Loading…" body="Fetching the case." />;
+  if (!kase) return <CaseDetailSkeleton />;
 
   function download() {
     if (!report) return;
@@ -85,7 +86,7 @@ export default function ReportPage({
                   href={report.routes[0].url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
+                  className="tt-press tt-focus rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
                 >
                   Open {report.routes[0].name} ↗
                 </a>
@@ -97,14 +98,14 @@ export default function ReportPage({
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink transition hover:bg-raised"
+                className="tt-press tt-focus rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink transition hover:bg-raised"
               >
                 {copied ? "Copied ✓" : "Copy report"}
               </button>
               <button
                 type="button"
                 onClick={download}
-                className="rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink transition hover:bg-raised"
+                className="tt-press tt-focus rounded-lg border border-line bg-surface px-5 py-2.5 text-sm text-ink transition hover:bg-raised"
               >
                 Download
               </button>

@@ -151,7 +151,7 @@ export default function NewCasePage() {
           <button
             type="submit"
             disabled={busy || !looksLikeUrl}
-            className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40"
+            className="tt-press tt-focus rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? "Starting…" : "Continue"}
           </button>

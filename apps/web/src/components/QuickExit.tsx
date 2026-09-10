@@ -65,7 +65,7 @@ export default function QuickExit() {
         onClick={exit}
         onMouseEnter={() => setHint(true)}
         onFocus={() => setHint(true)}
-        className="rounded-md bg-raised px-3 py-1.5 text-xs font-medium text-ink ring-offset-canvas transition hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+        className="tt-press tt-focus rounded-md bg-raised px-3 py-1.5 text-xs font-medium text-ink ring-offset-canvas transition hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
         Quick exit
       </button>

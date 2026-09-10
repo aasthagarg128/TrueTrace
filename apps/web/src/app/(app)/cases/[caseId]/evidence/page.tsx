@@ -3,6 +3,7 @@
 import { use } from "react";
 import { EvidenceArt } from "@/components/Art";
 import CaseHeader from "@/components/CaseHeader";
+import { CaseDetailSkeleton } from "@/components/Skeleton";
 import { useCase } from "@/lib/useCase";
 
 export default function EvidencePage({
@@ -14,7 +15,7 @@ export default function EvidencePage({
   const { kase, error } = useCase(caseId);
 
   if (error) return <Notice title="Could not load this case" body={error} />;
-  if (!kase) return <Notice title="Loading…" body="Fetching the case." />;
+  if (!kase) return <CaseDetailSkeleton />;
 
   const ev = kase.evidence;
 

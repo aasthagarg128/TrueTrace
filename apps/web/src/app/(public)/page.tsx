@@ -65,13 +65,13 @@ export default function LandingPage() {
           <div className="tt-rise tt-d2 mt-8 flex flex-wrap gap-3">
             <Link
               href="/signup"
-              className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink shadow-lg shadow-accent/20 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+              className="tt-press tt-focus rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink shadow-lg shadow-accent/20 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             >
               Get started
             </Link>
             <a
               href="#how-it-works"
-              className="rounded-lg border border-line px-6 py-3 text-sm font-medium text-ink transition hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="tt-press tt-focus rounded-lg border border-line px-6 py-3 text-sm font-medium text-ink transition hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               How it works
             </a>
@@ -214,13 +214,13 @@ export default function LandingPage() {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
-              className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:opacity-90"
+              className="tt-press tt-focus rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:opacity-90"
             >
               Get started
             </Link>
             <Link
               href="/login"
-              className="rounded-lg border border-line bg-surface px-6 py-3 text-sm font-medium text-ink transition hover:bg-raised"
+              className="tt-press tt-focus rounded-lg border border-line bg-surface px-6 py-3 text-sm font-medium text-ink transition hover:bg-raised"
             >
               I already have an account
             </Link>

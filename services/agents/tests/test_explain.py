@@ -113,3 +113,66 @@ def test_api_failure_degrades_to_none(monkeypatch):
     # No network here; the SDK will fail. The contract is that it returns None
     # so the case still completes with its template explanation.
     assert explain(ANALYSIS, LIMITATIONS, timeout_s=2) is None
+
+
+# ----------------------------------------------------- truncated replies
+
+class _FakeResponse:
+    def __init__(self, text, finish):
+        self.text = text
+        self.candidates = [type("C", (), {"finish_reason": finish})()]
+
+
+def _install_fake_gemini(monkeypatch, response):
+    """Replace only Client, leaving the real `types` in place.
+
+    Patching the whole SDK out once gave a false pass here: the fake broke on
+    import, `explain` swallowed the ImportError, and an empty prompt looked
+    like a clean one. Keeping `types` real means the config we build has to be
+    valid against the installed SDK or this test fails.
+    """
+    from google import genai
+
+    calls = {}
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            calls["config"] = kwargs["config"]
+            return response
+
+    class FakeClient:
+        def __init__(self, **_):
+            self.models = FakeModels()
+
+    monkeypatch.setattr(genai, "Client", FakeClient)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    return calls
+
+
+def test_truncated_reply_is_discarded(monkeypatch):
+    """A thinking model can burn the whole token budget before it writes a
+    word. Half a sentence shown to someone in distress reads as the app
+    falling over, so it must degrade to the template instead."""
+    calls = _install_fake_gemini(
+        monkeypatch,
+        _FakeResponse("The automated screening examined 14 frames and this", "MAX_TOKENS"),
+    )
+    assert explain(ANALYSIS, LIMITATIONS) is None
+    assert calls, "the fake was never called; this test proved nothing"
+
+
+def test_complete_reply_is_returned(monkeypatch):
+    calls = _install_fake_gemini(
+        monkeypatch, _FakeResponse("A scan examined 14 frames and flagged them.", "STOP")
+    )
+    assert explain(ANALYSIS, LIMITATIONS) == "A scan examined 14 frames and flagged them."
+    assert calls
+
+
+def test_thinking_budget_leaves_room_for_prose(monkeypatch):
+    """Measured: ~850 thinking tokens at the lowest level, against ~90 of
+    prose. If someone trims max_output_tokens back toward the length of the
+    answer, every reply silently truncates again."""
+    calls = _install_fake_gemini(monkeypatch, _FakeResponse("fine", "STOP"))
+    explain(ANALYSIS, LIMITATIONS)
+    assert calls["config"].max_output_tokens >= 1500

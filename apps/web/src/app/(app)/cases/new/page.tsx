@@ -104,7 +104,7 @@ export default function NewCasePage() {
             checked={isIntimate}
             onChange={setIsIntimate}
             label="It is intimate or sexual"
-            hint="In the US this triggers a legal 48-hour removal deadline, which we cite in the report."
+            hint="This can trigger a legal removal deadline depending on where you are, which we cite in the report."
           />
           <div className="pt-1">
             <label htmlFor="j" className="block text-sm text-ink">Where are you?</label>
@@ -115,10 +115,17 @@ export default function NewCasePage() {
               className="mt-1.5 rounded-md border border-line bg-raised px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <option value="US">United States</option>
+              <option value="UK">United Kingdom</option>
+              <option value="EU">European Union</option>
+              <option value="IN">India</option>
+              <option value="AU">Australia</option>
+              <option value="CA">Canada</option>
               <option value="OTHER">Somewhere else</option>
             </select>
             <p className="mt-1 text-xs text-subtle">
-              This only changes which laws the report can cite.
+              This changes which law and regulator the report cites. It is
+              background information, not legal advice — laws in this area are
+              changing quickly.
             </p>
           </div>
         </fieldset>

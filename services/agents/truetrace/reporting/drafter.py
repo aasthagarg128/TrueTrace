@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from textwrap import fill
 
+from . import jurisdictions
 from .platforms import ESCALATION, Platform, identify
 
 WIDTH = 76
@@ -108,14 +109,17 @@ def draft(inp: ReportInput) -> DraftedReport:
         else "This content is non-consensual intimate or manipulated imagery of a real person."
     )
 
+    jurisdiction = jurisdictions.get(inp.jurisdiction)
     statutory = ""
-    if inp.jurisdiction.upper() == "US" and inp.is_intimate:
-        statutory = "\n\n" + _wrap(
-            "This request is submitted under the US TAKE IT DOWN Act, which "
-            "requires covered platforms to remove non-consensual intimate "
-            "imagery - including AI-generated and synthetic depictions - within "
-            "48 hours of a valid request."
-        )
+    if inp.is_intimate:
+        note = jurisdiction.statutory_note if jurisdiction else jurisdictions.GENERIC_NOTE
+        statutory = "\n\n" + _wrap(note) + "\n\n" + _wrap(jurisdictions.DISCLAIMER)
+        if jurisdiction and jurisdiction.status != "in force":
+            warnings.append(
+                f"The statutory route cited for {jurisdiction.display_name} is "
+                f"not fully in force yet ({jurisdiction.status}). The report "
+                "notes this rather than overstating it."
+            )
 
     statement = _wrap(
         f"{who} states that they are the person depicted in this content, and that "
@@ -197,7 +201,9 @@ Regards,
         platform=platform,
         subject=subject,
         body=body,
-        routes=(platform.routes if platform else []) + ESCALATION,
+        routes=(platform.routes if platform else [])
+        + (jurisdiction.regulator_routes if jurisdiction else [])
+        + ESCALATION,
         checklist=checklist,
         warnings=warnings,
     )

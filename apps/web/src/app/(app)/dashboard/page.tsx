@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import CaseCard from "@/components/CaseCard";
+import FeedbackForm from "@/components/FeedbackForm";
 import { EmptyCasesArt, IconDraft, IconLink, IconSeal } from "@/components/Art";
 import { CaseListSkeleton, StatSkeleton } from "@/components/Skeleton";
 import { listCases, isBusy, type CaseSummary } from "@/lib/api";
@@ -107,6 +108,15 @@ export default function DashboardPage() {
           </ul>
         )}
       </section>
+
+      <details className="tt-card group rounded-xl border border-line">
+        <summary className="cursor-pointer px-6 py-4 text-sm text-muted hover:text-ink">
+          Something wrong, or missing? <span className="text-subtle">Send feedback</span>
+        </summary>
+        <div className="px-6 pb-6">
+          <FeedbackForm page="dashboard" />
+        </div>
+      </details>
     </div>
   );
 }

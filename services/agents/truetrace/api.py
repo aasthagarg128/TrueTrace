@@ -65,6 +65,7 @@ from .core.google_auth import (
 from .core.detector_client import DetectorClient
 from .core.evidence import build_manifest, build_package, chain_entry
 from .core.explain import explain as gemini_explain, is_configured as gemini_configured
+from .core.feedback import FeedbackError, save as save_feedback
 from .core.frames import sample_frames
 from .core.hashing import sha256_file
 from .core.retention import sweep as sweep_expired_evidence
@@ -174,6 +175,13 @@ class GoogleCredential(BaseModel):
     credential: str  # the ID token issued by Google Identity Services
 
 
+class FeedbackSubmission(BaseModel):
+    message: str
+    rating: int | None = None
+    contact: str | None = None  # optional, never required
+    page: str | None = None  # which screen it was sent from, for context
+
+
 def current_user(authorization: str | None = Header(default=None)) -> dict:
     """Resolve the bearer token to a user, or 401.
 
@@ -190,6 +198,23 @@ def current_user(authorization: str | None = Header(default=None)) -> dict:
     if user is None:
         raise HTTPException(401, "not signed in")
     return user
+
+
+def optional_user(authorization: str | None = Header(default=None)) -> dict | None:
+    """Like `current_user`, but feedback should not require an account.
+
+    A best-effort attribution: a valid token attaches the account, anything
+    else - no header, an expired token, a deleted account - is treated as
+    anonymous rather than rejected. Feedback is the one route where being
+    signed in is a bonus, not a requirement.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    try:
+        user_id = verify_token(authorization.split(" ", 1)[1].strip())
+    except AuthError:
+        return None
+    return users.get_by_id(user_id)
 
 
 def _public(user: dict) -> dict:
@@ -449,6 +474,27 @@ def get_report(case_id: str, user: dict = Depends(current_user)) -> dict:
         "checklist": report.checklist,
         "warnings": report.warnings,
     }
+
+
+@app.post("/feedback", status_code=201)
+def submit_feedback(
+    body: FeedbackSubmission,
+    user: dict | None = Depends(optional_user),
+) -> dict:
+    """Anonymous by default. No case data, no evidence, no video ever passes
+    through this route - it exists so the product can hear from people who
+    are not in the middle of a case, not to open a second channel into it."""
+    try:
+        feedback_id = save_feedback(
+            body.message,
+            rating=body.rating,
+            contact=body.contact,
+            page=body.page,
+            owner=user["user_id"] if user else None,
+        )
+    except FeedbackError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"feedback_id": feedback_id}
 
 
 def _run_pipeline(case_id: str) -> None:

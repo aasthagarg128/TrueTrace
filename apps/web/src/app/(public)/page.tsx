@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   EvidenceArt,
+  FeedbackArt,
   HeroArt,
   IconCheck,
   IconClock,
@@ -9,9 +10,11 @@ import {
   IconLock,
   PipelineArt,
   PlatformMark,
+  PrivacyArt,
   ReportArt,
   STEP_ICONS,
 } from "@/components/Art";
+import FeedbackForm from "@/components/FeedbackForm";
 import Reveal from "@/components/Reveal";
 import SupportResources from "@/components/SupportResources";
 
@@ -118,10 +121,15 @@ export default function LandingPage() {
       {/* ------------------------------------------------------- privacy */}
       <Reveal>
         <section id="privacy" className="scroll-mt-24">
-          <h2 className="text-2xl font-semibold tracking-tight">Your privacy comes first</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            These are not marketing lines. Each one is a property enforced in the code.
-          </p>
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_0.9fr]">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Your privacy comes first</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+                These are not marketing lines. Each one is a property enforced in the code.
+              </p>
+            </div>
+            <PrivacyArt className="order-first mx-auto h-auto w-full max-w-xs lg:order-last" />
+          </div>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2">
             {PRIVACY.map(({ Icon, title, body }) => (
               <li key={title} className="tt-card rounded-xl border border-line p-5">
@@ -224,6 +232,26 @@ export default function LandingPage() {
             >
               I already have an account
             </Link>
+          </div>
+        </section>
+      </Reveal>
+
+      {/* -------------------------------------------------------- feedback */}
+      <Reveal>
+        <section id="feedback" className="scroll-mt-24">
+          <div className="flex flex-wrap items-center gap-4">
+            <FeedbackArt className="h-16 w-auto shrink-0" />
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Tell us what to fix</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">
+                This is a young product, built in the open about a hard problem. If
+                something is confusing, missing, or broken, we would rather hear it
+                from you than guess.
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 max-w-xl">
+            <FeedbackForm page="landing" />
           </div>
         </section>
       </Reveal>

@@ -299,6 +299,75 @@ export function IconIncognito({ className = "" }: { className?: string }) {
   );
 }
 
+/**
+ * Privacy section hero: a document inside a shield, with no lines of text
+ * visible through it — the point is that what's inside stays inside, not a
+ * padlock cliché repeated a second time on the same page.
+ */
+export function PrivacyArt({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 300 170" role="img" aria-label="A private record, visible to no one else" className={className}>
+      <defs>
+        <linearGradient id="tt-priv-shield" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.24" />
+          <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0.08" />
+        </linearGradient>
+        <radialGradient id="tt-priv-glow" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.14" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <ellipse cx="150" cy="88" rx="140" ry="82" fill="url(#tt-priv-glow)" />
+
+      <g stroke="var(--accent)" fill="none" opacity="0.22">
+        <circle cx="150" cy="86" r="66" strokeWidth="1" className="tt-ring tt-ring-1" style={{ transformOrigin: "150px 86px" }} />
+      </g>
+
+      {/* orbiting dots stand in for "your data", each held at a distance,
+          never converging on a single exposed record */}
+      <g className="tt-float-slow">
+        {[0, 120, 240].map((deg) => {
+          const rad = (deg * Math.PI) / 180;
+          const x = 150 + Math.cos(rad) * 100;
+          const y = 86 + Math.sin(rad) * 58;
+          return <circle key={deg} cx={x} cy={y} r="4" fill="var(--accent)" opacity="0.45" />;
+        })}
+      </g>
+
+      <path
+        d="M150 24l52 20v40c0 36-24 60-52 68-28-8-52-32-52-68V44z"
+        fill="url(#tt-priv-shield)" stroke="var(--accent)" strokeWidth="1.4"
+        className="tt-float"
+      />
+
+      {/* a document, face-down and unreadable, inside the shield */}
+      <rect x="122" y="60" width="56" height="70" rx="6" fill="var(--surface)" stroke="var(--line)" strokeWidth="1.3" />
+      <g stroke="var(--muted)" strokeWidth="3" strokeLinecap="round" opacity="0.25">
+        <path d="M132 78h20" /><path d="M132 90h30" /><path d="M132 102h24" />
+      </g>
+      <circle cx="150" cy="118" r="9" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.3" />
+      <path d="M146 118l2.6 2.6 5.4-6" fill="none" stroke="var(--accent)" strokeWidth="1.8"
+            strokeLinecap="round" strokeLinejoin="round" className="tt-check" />
+    </svg>
+  );
+}
+
+/** Feedback: a message arriving and being read, not sent into a void. */
+export function FeedbackArt({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 90" role="img" aria-label="A message being read" className={className}>
+      <rect x="10" y="14" width="72" height="50" rx="10" fill="var(--surface)" stroke="var(--line)" strokeWidth="1.4" />
+      <path d="M10 20l36 26 36-26" fill="none" stroke="var(--muted)" strokeWidth="2" opacity="0.4" strokeLinecap="round" strokeLinejoin="round" />
+      <g className="tt-float-slow">
+        <circle cx="90" cy="58" r="22" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.5" />
+        <path d="M81 58l6.5 6.5L100 51" fill="none" stroke="var(--accent)" strokeWidth="2.6"
+              strokeLinecap="round" strokeLinejoin="round" className="tt-check" />
+      </g>
+    </svg>
+  );
+}
+
 /* ---------- states and moments ---------- */
 
 /**

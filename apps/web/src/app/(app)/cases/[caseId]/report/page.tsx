@@ -30,9 +30,24 @@ export default function ReportPage({
 
   function download() {
     if (!report) return;
-    const blob = new Blob([`Subject: ${report.subject}\n\n${report.body}`], {
-      type: "text/plain;charset=utf-8",
-    });
+    // A self-contained record, not just the message body: the routes and
+    // checklist matter just as much once this is saved outside the app,
+    // e.g. attached to an email to a lawyer or an advocacy organisation.
+    const sections = [
+      `Subject: ${report.subject}`,
+      "",
+      report.body,
+      "",
+      "-- BEFORE YOU SEND --",
+      ...report.checklist.map((c) => `- ${c}`),
+      "",
+      "-- ALL REPORTING ROUTES --",
+      ...report.routes.map((r) => `${r.name}: ${r.url}${r.note ? ` (${r.note})` : ""}`),
+    ];
+    if (report.warnings.length) {
+      sections.push("", "-- WARNINGS --", ...report.warnings.map((w) => `- ${w}`));
+    }
+    const blob = new Blob([sections.join("\n")], { type: "text/plain;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `truetrace-${shortRef(caseId)}.txt`;

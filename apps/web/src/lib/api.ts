@@ -245,6 +245,22 @@ export async function health() {
   return request<{ status: string; detector: Record<string, unknown> }>("/healthz");
 }
 
+/* -------------------------------------------------------------- feedback */
+
+/** No login required — the token is attached automatically if one exists,
+ * but its absence never blocks the submission. */
+export async function sendFeedback(input: {
+  message: string;
+  rating?: number | null;
+  contact?: string | null;
+  page?: string;
+}) {
+  return request<{ feedback_id: string }>("/feedback", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 /* --------------------------------------------------------------- helpers */
 
 export const BUSY_STATUSES: CaseStatus[] = [

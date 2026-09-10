@@ -17,6 +17,22 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Load the repo-root .env before any submodule below reads its own config.
+# Nothing previously did this: build_case_store(), build_mailer(), the auth
+# secret, and the Gemini/Google client id are all resolved from the
+# environment as soon as they're imported or called at module scope (a few
+# lines down), which is before a plain call to `uvicorn truetrace.api:app` --
+# the exact command in the README -- would ever have populated it. Every one
+# of those settings was silently reverting to its unconfigured fallback
+# (random per-process secrets, Gemini/Google both disabled) unless something
+# else in the shell had exported the variables first.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parents[3] / ".env")
+except ImportError:
+    pass  # python-dotenv not installed; environment must be exported manually
+
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response

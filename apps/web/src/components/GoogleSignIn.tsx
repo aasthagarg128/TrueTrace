@@ -65,6 +65,10 @@ export default function GoogleSignIn({
   const holder = useRef<HTMLDivElement>(null);
   const [enabled, setEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Why the button is absent. Shown in development only: a real user should
+  // simply not see an option that does not exist, but the person building this
+  // needs to know the difference between "switched off" and "broken".
+  const [devReason, setDevReason] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,17 +77,27 @@ export default function GoogleSignIn({
       let clientId: string | null = null;
       try {
         const cfg = await authConfig();
-        if (!cfg.google_enabled || !cfg.google_client_id) return;
+        if (!cfg.google_enabled || !cfg.google_client_id) {
+          setDevReason(
+            "Google Sign-In is off because GOOGLE_CLIENT_ID is not set in .env. " +
+            "Create an OAuth 2.0 Client ID (Web application) in the Google Cloud " +
+            "console, add http://localhost:3000 to its authorised JavaScript " +
+            "origins, then restart the API.",
+          );
+          return;
+        }
         clientId = cfg.google_client_id;
       } catch {
-        return; // server unreachable: stay hidden, password form is unaffected
+        setDevReason("Could not reach the API to ask whether Google Sign-In is enabled.");
+        return; // stay hidden; the password form is unaffected
       }
       if (cancelled) return;
 
       try {
         await loadScript();
       } catch {
-        return; // script blocked by the browser or an extension
+        setDevReason("Google's script was blocked by the browser or an extension.");
+        return;
       }
       if (cancelled || !holder.current || !window.google) return;
 
@@ -118,8 +132,20 @@ export default function GoogleSignIn({
     };
   }, [onSignedIn, label]);
 
+  if (!enabled) {
+    // Nothing at all in production. In development, say why.
+    if (process.env.NODE_ENV === "development" && devReason) {
+      return (
+        <p className="mt-6 rounded-lg border border-dashed border-line px-3 py-2.5 text-xs leading-relaxed text-subtle">
+          <span className="font-medium text-muted">Developer note.</span> {devReason}
+        </p>
+      );
+    }
+    return null;
+  }
+
   return (
-    <div className={enabled ? "mt-6" : "hidden"}>
+    <div className="mt-6">
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-line" />
         <span className="text-xs text-subtle">or</span>

@@ -20,6 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
   fetching: "Retrieving",
   hashing: "Fingerprinting",
   sampling: "Sampling frames",
+  verifying_identity: "Confirming identity",
   screening: "Screening",
   sealing: "Sealing evidence",
   complete: "Ready",

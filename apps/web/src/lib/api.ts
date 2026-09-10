@@ -5,8 +5,16 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8080";
 export type Band = "inconclusive" | "flagged" | "not_flagged";
 
 export type CaseStatus =
-  | "queued" | "fetching" | "hashing" | "sampling"
+  | "queued" | "fetching" | "hashing" | "sampling" | "verifying_identity"
   | "screening" | "sealing" | "complete" | "failed";
+
+export interface IdentityCheck {
+  matched: boolean;
+  reason: string | null;
+  best_similarity: number | null;
+  threshold?: number;
+  frames_with_face?: number;
+}
 
 export interface FrameResult {
   index: number;
@@ -63,6 +71,14 @@ export interface Case {
   source_metadata?: Record<string, unknown>;
   audit: AuditEntry[];
   error: string | null;
+  /** Present once the identity gate has run, matched or not. */
+  identity_check?: IdentityCheck | null;
+  /** Set whenever status is "failed", so the UI can explain WHY rather than
+   * showing one generic message for every kind of failure. */
+  failure_reason?:
+    | "fetch" | "no_frames" | "identity_mismatch" | "identity_no_face_in_reference"
+    | "identity_no_face_in_video_frames" | "identity_check_unavailable" | "unexpected"
+    | null;
 }
 
 export interface CaseSummary {
@@ -108,6 +124,9 @@ export interface CreateCaseBody {
   reporter_name: string | null;
   reporter_contact: string | null;
   extra_context: string | null;
+  /** Required. Compared once, in memory, against faces in the video; never
+   * uploaded anywhere else and never stored after that comparison. */
+  referencePhoto: File;
 }
 
 /* ------------------------------------------------------------- token store */
@@ -145,11 +164,15 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
+  // FormData bodies must NOT get a manual Content-Type: the browser sets one
+  // itself, including the multipart boundary, and overriding it here would
+  // send a boundary-less header the server can't parse.
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     cache: "no-store",
     headers: {
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(init.body && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
@@ -223,9 +246,23 @@ export async function deleteAccount() {
 /* ----------------------------------------------------------------- cases */
 
 export async function createCase(body: CreateCaseBody) {
+  // multipart/form-data, not JSON: the reference photo has to travel in the
+  // same request as the rest of the intake, and a JSON body can't carry a
+  // file. See lib/api.ts `request()` for why Content-Type is left unset here.
+  const form = new FormData();
+  form.set("url", body.url);
+  form.set("depicts_reporter", body.depicts_reporter ? "true" : "false");
+  form.set("consent_given", body.consent_given ? "true" : "false");
+  form.set("is_intimate", body.is_intimate ? "true" : "false");
+  form.set("jurisdiction", body.jurisdiction);
+  if (body.reporter_name) form.set("reporter_name", body.reporter_name);
+  if (body.reporter_contact) form.set("reporter_contact", body.reporter_contact);
+  if (body.extra_context) form.set("extra_context", body.extra_context);
+  form.set("reference_photo", body.referencePhoto);
+
   return request<{ case_id: string; status: string }>("/cases", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: form,
   });
 }
 
@@ -264,7 +301,7 @@ export async function sendFeedback(input: {
 /* --------------------------------------------------------------- helpers */
 
 export const BUSY_STATUSES: CaseStatus[] = [
-  "queued", "fetching", "hashing", "sampling", "screening", "sealing",
+  "queued", "fetching", "hashing", "sampling", "verifying_identity", "screening", "sealing",
 ];
 
 export function isBusy(status: CaseStatus) {

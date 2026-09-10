@@ -5,6 +5,7 @@ import { EvidenceArt, IconClock } from "@/components/Art";
 import CaseHeader from "@/components/CaseHeader";
 import { CaseDetailSkeleton } from "@/components/Skeleton";
 import { timeUntil } from "@/lib/api";
+import { failureCopy } from "@/lib/failure";
 import { useCase } from "@/lib/useCase";
 
 export default function EvidencePage({
@@ -29,7 +30,7 @@ export default function EvidencePage({
           title="No evidence record yet"
           body={
             kase.status === "failed"
-              ? "The content could not be retrieved, so nothing was sealed."
+              ? failureCopy(kase).title + " — nothing was sealed."
               : "The record is sealed once analysis finishes."
           }
         />

@@ -32,3 +32,19 @@ class DetectorClient:
         r = httpx.post(f"{self._base_url}/score", files=files, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
+
+    def verify_identity(self, reference_photo: bytes, frames: list[SampledFrame]) -> dict:
+        """Does `reference_photo` match a face in any of `frames`?
+
+        Sent alongside the same frame set already used for `/score` - the
+        reference photo is never written to disk on this side either; it
+        exists only as bytes in this process's memory for the duration of
+        this one HTTP call.
+        """
+        files = [("reference", ("reference.jpg", reference_photo, "image/jpeg"))]
+        files += [
+            ("frames", (f"frame_{f.index:03d}.jpg", f.jpeg, "image/jpeg")) for f in frames
+        ]
+        r = httpx.post(f"{self._base_url}/identity/verify", files=files, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()

@@ -49,5 +49,12 @@ class Settings(BaseSettings):
     measured_auc: float = 0.701
     measured_corpus: str = "40 real + 38 fake social media videos (acroitoru/social_media_deepfakes test split)"
 
+    # Identity matching (facenet-pytorch, VGGFace2). See app/identity.py and
+    # docs/identity-matching-findings.md for how this threshold was chosen -
+    # it is deliberately lenient, and NOT calibrated to a false-accept /
+    # false-reject rate the way flag_threshold above was.
+    identity_match_threshold: float = 0.40
+    identity_min_face_size: int = 40
+
 
 settings = Settings()

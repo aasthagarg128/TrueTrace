@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from .classifier import get_classifier
 from .config import settings
 from .faces import FaceDetector
+from .identity import IdentityMatcher, cosine_similarity, decide_match
 from .scoring import FrameResult, aggregate
 
 logging.basicConfig(level=logging.INFO)
@@ -25,14 +26,17 @@ log = logging.getLogger(__name__)
 
 app = FastAPI(title="TrueTrace Detector", version="0.1.0")
 _faces: FaceDetector | None = None
+_identity: IdentityMatcher | None = None
 
 
 @app.on_event("startup")
 def _startup() -> None:
-    global _faces
+    global _faces, _identity
     _faces = FaceDetector()
-    # Warm the model now so the first real request isn't paying for a cold load.
+    _identity = IdentityMatcher()
+    # Warm both models now so the first real request isn't paying for a cold load.
     get_classifier().load()
+    _identity.load()
     log.info("detector ready")
 
 
@@ -78,3 +82,59 @@ async def score(frames: list[UploadFile] = File(...)) -> JSONResponse:
     payload["model_version"] = get_classifier().version
     payload["elapsed_ms"] = int((time.monotonic() - started) * 1000)
     return JSONResponse(payload)
+
+
+@app.post("/identity/verify")
+async def verify_identity(
+    reference: UploadFile = File(...),
+    frames: list[UploadFile] = File(...),
+) -> JSONResponse:
+    """Does a face in `reference` match a face in any of `frames`?
+
+    Independent of /score on purpose: this never touches the deepfake
+    classifier, and /score never touches this. A match result says nothing
+    about manipulation, and a manipulation score says nothing about identity.
+    """
+    assert _identity is not None
+    started = time.monotonic()
+
+    ref_raw = np.frombuffer(await reference.read(), dtype=np.uint8)
+    ref_image = cv2.imdecode(ref_raw, cv2.IMREAD_COLOR)
+    if ref_image is None:
+        return JSONResponse({"error": "reference photo could not be decoded"}, status_code=400)
+
+    ref_embedding = _identity.embed(cv2.cvtColor(ref_image, cv2.COLOR_BGR2RGB))
+    if ref_embedding is None:
+        return JSONResponse(
+            {"matched": False, "reason": "no_face_in_reference", "best_similarity": None},
+            status_code=200,
+        )
+
+    frames_with_face = 0
+    best_similarity = -1.0
+    for upload in frames:
+        raw = np.frombuffer(await upload.read(), dtype=np.uint8)
+        image = cv2.imdecode(raw, cv2.IMREAD_COLOR)
+        if image is None:
+            continue
+        emb = _identity.embed(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        if emb is None:
+            continue
+        frames_with_face += 1
+        best_similarity = max(best_similarity, cosine_similarity(ref_embedding, emb))
+
+    if frames_with_face == 0:
+        return JSONResponse(
+            {"matched": False, "reason": "no_face_in_video_frames", "best_similarity": None},
+            status_code=200,
+        )
+
+    matched = decide_match(best_similarity)
+    return JSONResponse({
+        "matched": matched,
+        "reason": None if matched else "below_threshold",
+        "best_similarity": round(best_similarity, 4),
+        "threshold": settings.identity_match_threshold,
+        "frames_with_face": frames_with_face,
+        "elapsed_ms": int((time.monotonic() - started) * 1000),
+    })

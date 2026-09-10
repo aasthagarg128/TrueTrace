@@ -8,12 +8,14 @@ import BlurredPreview from "@/components/BlurredPreview";
 import CaseHeader from "@/components/CaseHeader";
 import ScreeningResult from "@/components/ScreeningResult";
 import { getReport, isBusy, type Report } from "@/lib/api";
+import { failureCopy } from "@/lib/failure";
 import { useCase } from "@/lib/useCase";
 
 const STAGES = [
   { key: "fetching", label: "Retrieving the content" },
   { key: "hashing", label: "Fingerprinting the file" },
   { key: "sampling", label: "Taking still frames" },
+  { key: "verifying_identity", label: "Confirming this is you" },
   { key: "screening", label: "Running the automated check" },
   { key: "sealing", label: "Sealing the evidence record" },
 ];
@@ -37,23 +39,29 @@ export default function CaseOverviewPage({
   if (!kase) return <CaseDetailSkeleton />;
 
   if (kase.status === "failed") {
+    const copy = failureCopy(kase);
     return (
       <div className="space-y-6">
         <CaseHeader kase={kase} />
         <section className="tt-card rounded-xl border border-line p-6">
           <h2 className="flex items-center gap-2.5 text-lg font-medium">
             <IconShieldOff className="h-5 w-5 shrink-0 text-attention" />
-            We could not retrieve that content
+            {copy.title}
           </h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted">{copy.body}</p>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            The link may be private, already removed, behind a login, or on a site we
-            cannot reach automatically. This is common and it is not your fault.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-muted">
-            <strong className="font-medium text-ink">You can still report it.</strong>{" "}
+            <strong className="font-medium text-ink">You can still report it directly.</strong>{" "}
             Platforms act on your statement that you are the person depicted — not on
-            whether our retrieval worked.
+            whether TrueTrace's automation succeeded.
           </p>
+          {kase.identity_check?.best_similarity != null && (
+            <p className="mt-3 text-xs text-subtle">
+              Face-match confidence: {(kase.identity_check.best_similarity * 100).toFixed(0)}%
+              (a match is accepted from{" "}
+              {((kase.identity_check.threshold ?? 0.4) * 100).toFixed(0)}% up — this is a
+              deliberately lenient check, biased against wrongly turning away a real match).
+            </p>
+          )}
           <details className="mt-4">
             <summary className="cursor-pointer text-xs text-subtle hover:text-ink">
               Technical detail
@@ -66,7 +74,7 @@ export default function CaseOverviewPage({
             href="/cases/new"
             className="tt-press tt-focus mt-5 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink transition hover:opacity-90"
           >
-            Try another link
+            {copy.suggestRetryWithNewPhoto ? "Try again with a different photo" : "Try another link"}
           </Link>
         </section>
       </div>

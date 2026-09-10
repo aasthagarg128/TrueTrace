@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconLock } from "@/components/Art";
 import { createCase } from "@/lib/api";
+
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
 /**
  * Case creation lives here, behind authentication — not on the public landing
@@ -18,14 +20,55 @@ export default function NewCasePage() {
   const [depicts, setDepicts] = useState(true);
   const [jurisdiction, setJurisdiction] = useState("US");
   const [context, setContext] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const trimmed = url.trim();
   const looksLikeUrl = /^https?:\/\/.+\..+/i.test(trimmed);
 
+  // Object URLs are per-file and must be released, or they pile up as the
+  // user swaps photos — this is the only place the photo touches anything
+  // resembling storage, and even this is purely client-side, in-tab memory.
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
+
+  function pickPhoto(file: File | null) {
+    setPhotoError(null);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    if (!file) {
+      setPhoto(null);
+      setPhotoPreview(null);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("That doesn't look like an image file.");
+      setPhoto(null);
+      setPhotoPreview(null);
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setPhotoError("That photo is too large (8MB limit).");
+      setPhoto(null);
+      setPhotoPreview(null);
+      return;
+    }
+    setPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!photo) {
+      setPhotoError("A reference photo is required to start a case.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -38,6 +81,7 @@ export default function NewCasePage() {
         reporter_name: null,
         reporter_contact: null,
         extra_context: context.trim() || null,
+        referencePhoto: photo,
       });
       router.push(`/cases/${case_id}`);
     } catch (err) {
@@ -58,8 +102,9 @@ export default function NewCasePage() {
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">New case</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          You only need the link. You don&apos;t need to download or upload the video,
-          and you don&apos;t need to watch it again.
+          You need the link and one photo of your face. You don&apos;t need to
+          download or upload the video itself, and you don&apos;t need to watch
+          it again.
         </p>
       </header>
 
@@ -86,6 +131,66 @@ export default function NewCasePage() {
               ? "That does not look like a web address yet — it should start with https://"
               : "The video is retrieved, fingerprinted, then deleted. It is never stored or uploaded anywhere."}
           </p>
+        </div>
+
+        <div className="tt-card rounded-xl border border-line p-6">
+          <label htmlFor="photo" className="block text-sm font-medium text-ink">
+            A photo of your face
+          </label>
+          <p className="mt-1 text-xs text-muted">
+            Required. Compared once, in this one request, against faces found in
+            the video — to confirm this depicts the same person before we
+            proceed. The photo is never saved: not to disk, not to your account,
+            not anywhere. It exists only in memory for the moment of comparison.
+          </p>
+
+          <div className="mt-3 flex items-center gap-4">
+            {photoPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a local
+              // object URL, never a remote image; next/image adds nothing here.
+              <img
+                src={photoPreview}
+                alt="Selected reference photo preview"
+                className="h-16 w-16 shrink-0 rounded-lg border border-line object-cover"
+              />
+            ) : (
+              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-lg border border-dashed border-line text-subtle">
+                <IconLock className="h-5 w-5" />
+              </span>
+            )}
+            <div>
+              <input
+                ref={fileInputRef}
+                id="photo"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="tt-press tt-focus rounded-lg border border-line bg-surface px-4 py-2 text-sm text-ink transition hover:bg-raised"
+              >
+                {photo ? "Choose a different photo" : "Choose a photo"}
+              </button>
+              {photo && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    pickPhoto(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="tt-focus ml-2 rounded-lg px-2 py-2 text-sm text-muted hover:text-ink"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+          {photoError && (
+            <p role="alert" className="mt-2 text-xs text-attention">{photoError}</p>
+          )}
         </div>
 
         <fieldset className="tt-card space-y-4 rounded-xl border border-line p-6">
@@ -157,7 +262,7 @@ export default function NewCasePage() {
         <div className="flex flex-wrap items-center gap-4">
           <button
             type="submit"
-            disabled={busy || !looksLikeUrl}
+            disabled={busy || !looksLikeUrl || !photo}
             className="tt-press tt-focus rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? "Starting…" : "Continue"}

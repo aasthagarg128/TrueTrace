@@ -20,3 +20,4 @@ google-cloud-firestore==2.20.0
 # Cloud Storage and Pub/Sub were declared here but never imported. Both also
 # require a billing account, so they are not part of the free-tier build.
 # Re-add them alongside the code that actually uses them.
+python-multipart==0.0.32

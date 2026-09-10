@@ -11,3 +11,8 @@ pillow==11.0.0
 # CPU-only torch. On Linux/Docker install with:
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
 torch==2.5.1
+# Identity matching (app/identity.py). torchvision must match the torch pin
+# above; install both from the same CPU index:
+#   pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.20.1
+facenet-pytorch==2.6.0

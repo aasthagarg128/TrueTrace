@@ -33,7 +33,7 @@ try:
 except ImportError:
     pass  # python-dotenv not installed; environment must be exported manually
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Header
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Header, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -376,29 +376,65 @@ def google_login(body: GoogleCredential) -> dict:
     return {"token": issue_token(user["user_id"]), "user": _public(user), "created": created}
 
 
+MAX_REFERENCE_PHOTO_BYTES = 8 * 1024 * 1024  # 8MB
+
+
 @app.post("/cases", status_code=202)
-def create_case(
-    body: CreateCase,
+async def create_case(
     background: BackgroundTasks,
+    url: str = Form(...),
+    depicts_reporter: bool = Form(True),
+    consent_given: bool = Form(False),
+    is_intimate: bool = Form(True),
+    jurisdiction: str = Form("US"),
+    reporter_name: str | None = Form(None),
+    reporter_contact: str | None = Form(None),
+    extra_context: str | None = Form(None),
+    # Required: a case cannot be created without one. See core/identity.py
+    # for what this is and is not used for - never stored, never sent
+    # anywhere but the one in-memory comparison against the video's frames.
+    reference_photo: UploadFile = File(...),
     user: dict = Depends(current_user),
 ) -> dict:
+    if not (reference_photo.content_type or "").startswith("image/"):
+        raise HTTPException(400, "The reference photo must be an image file.")
+    photo_bytes = await reference_photo.read()
+    if not photo_bytes:
+        raise HTTPException(400, "The reference photo was empty.")
+    if len(photo_bytes) > MAX_REFERENCE_PHOTO_BYTES:
+        raise HTTPException(400, "The reference photo is too large (8MB limit).")
+
     case_id = f"case-{uuid.uuid4().hex[:12]}"
+    intake = {
+        "url": url,
+        "depicts_reporter": depicts_reporter,
+        "consent_given": consent_given,
+        "is_intimate": is_intimate,
+        "jurisdiction": jurisdiction,
+        "reporter_name": reporter_name,
+        "reporter_contact": reporter_contact,
+        "extra_context": extra_context,
+    }
     store.create(
         {
             "case_id": case_id,
             "owner": user["user_id"],
             "status": "queued",
-            "source_url": body.url,
+            "source_url": url,
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "intake": body.model_dump(),
+            "intake": intake,
             "analysis": None,
             "evidence": None,
             "preview_b64": None,
+            "identity_check": None,
+            "failure_reason": None,
             "error": None,
         }
     )
-    store.append_audit(case_id, "created", body.url)
-    background.add_task(_run_pipeline, case_id)
+    store.append_audit(case_id, "created", url)
+    # photo_bytes lives only in this request's memory and the background
+    # task's arguments - never written to disk, never part of the case record.
+    background.add_task(_run_pipeline, case_id, photo_bytes)
     return {"case_id": case_id, "status": "queued"}
 
 
@@ -497,7 +533,7 @@ def submit_feedback(
     return {"feedback_id": feedback_id}
 
 
-def _run_pipeline(case_id: str) -> None:
+def _run_pipeline(case_id: str, reference_photo: bytes) -> None:
     case = store.get(case_id)
     if case is None:
         return
@@ -506,7 +542,7 @@ def _run_pipeline(case_id: str) -> None:
         store.update(case_id, {"status": "fetching"})
         result = FallbackFetcher().fetch(case["source_url"], workdir)
         if not result.ok:
-            store.update(case_id, {"status": "failed", "error": result.degraded})
+            store.update(case_id, {"status": "failed", "error": result.degraded, "failure_reason": "fetch"})
             store.append_audit(case_id, "fetch_failed", result.degraded or "")
             return
         store.append_audit(case_id, "fetched", result.metadata.get("title") or "")
@@ -518,8 +554,50 @@ def _run_pipeline(case_id: str) -> None:
         store.update(case_id, {"status": "sampling"})
         frames = sample_frames(result.video_path, count=int(os.getenv("FRAME_SAMPLE_COUNT", "16")))
         if not frames:
-            store.update(case_id, {"status": "failed", "error": "no decodable frames"})
+            store.update(case_id, {"status": "failed", "error": "no decodable frames", "failure_reason": "no_frames"})
             return
+
+        # Required gate, and unlike Gemini/Firestore this one does NOT fail
+        # soft: those are enhancements the product works fine without, but
+        # identity verification was made a hard requirement for a case to
+        # exist at all, so a detector outage must stop the case, loudly,
+        # rather than silently let an unverified case through.
+        store.update(case_id, {"status": "verifying_identity"})
+        try:
+            identity = detector.verify_identity(reference_photo, frames)
+        except Exception as exc:
+            store.update(case_id, {
+                "status": "failed",
+                "error": f"identity verification service unavailable: {exc}",
+                "failure_reason": "identity_check_unavailable",
+            })
+            store.append_audit(case_id, "identity_check_failed", str(exc))
+            return
+        finally:
+            # The one copy of these bytes in the whole system goes out of
+            # scope here regardless of outcome - nothing below this line
+            # can reach the reference photo.
+            del reference_photo
+
+        if not identity.get("matched"):
+            reason = identity.get("reason") or "below_threshold"
+            error_text = {
+                "no_face_in_reference": "no clearly detectable face was found in the reference photo",
+                "no_face_in_video_frames": "no clearly detectable face was found in any sampled video frame",
+            }.get(reason, "the reference photo did not match a face in this video")
+            store.update(case_id, {
+                "status": "failed",
+                "error": error_text,
+                "failure_reason": "identity_mismatch" if reason == "below_threshold" else f"identity_{reason}",
+                "identity_check": identity,
+            })
+            store.append_audit(case_id, "identity_rejected", reason)
+            return
+
+        store.update(case_id, {"identity_check": identity})
+        store.append_audit(
+            case_id, "identity_verified", f"similarity={identity.get('best_similarity')}"
+        )
 
         store.update(case_id, {"status": "screening"})
         analysis = detector.score(frames)
@@ -596,7 +674,7 @@ def _run_pipeline(case_id: str) -> None:
         log.info("case %s complete (%s)", case_id, analysis.get("band"))
     except Exception as exc:
         log.exception("pipeline failed for %s", case_id)
-        store.update(case_id, {"status": "failed", "error": str(exc)})
+        store.update(case_id, {"status": "failed", "error": str(exc), "failure_reason": "unexpected"})
         store.append_audit(case_id, "failed", str(exc))
     finally:
         # The raw video is the most sensitive artifact here. It is never

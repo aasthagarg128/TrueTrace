@@ -439,11 +439,11 @@ export function LivePipelineArt({
   stage: number; // index of the active stage, -1 before anything starts
   className?: string;
 }) {
-  const nodes = [0, 1, 2, 3, 4];
-  const x = (i: number) => 26 + i * 62;
+  const nodes = [0, 1, 2, 3, 4, 5];
+  const x = (i: number) => 26 + i * 49.6;
 
   return (
-    <svg viewBox="0 0 280 56" role="img" aria-label={`Step ${Math.max(stage + 1, 1)} of 5`} className={className}>
+    <svg viewBox="0 0 280 56" role="img" aria-label={`Step ${Math.max(stage + 1, 1)} of 6`} className={className}>
       <line x1="26" y1="28" x2="274" y2="28" stroke="var(--line)" strokeWidth="2" strokeLinecap="round" />
       {stage >= 0 && (
         <line

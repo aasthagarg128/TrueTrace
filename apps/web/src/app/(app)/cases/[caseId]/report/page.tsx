@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import CaseHeader from "@/components/CaseHeader";
 import { CaseDetailSkeleton } from "@/components/Skeleton";
 import { getReport, shortRef, type Report } from "@/lib/api";
+import { failureCopy } from "@/lib/failure";
 import { useCase } from "@/lib/useCase";
 
 export default function ReportPage({
@@ -64,7 +65,7 @@ export default function ReportPage({
           title="The report is not ready yet"
           body={
             kase.status === "failed"
-              ? "The content could not be retrieved. You can still report it — platforms act on your statement that you are depicted."
+              ? `${failureCopy(kase).title}. You can still report it — platforms act on your statement that you are depicted.`
               : "Analysis is still running. The draft appears here as soon as it finishes."
           }
         />

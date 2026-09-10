@@ -12,12 +12,14 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Protocol
+from typing import Iterator, Protocol
 
 
 class CaseStore(Protocol):
     def create(self, case: dict) -> str: ...
     def get(self, case_id: str) -> dict | None: ...
+    # Needed by the retention sweep, which is not scoped to one owner.
+    def iter_cases(self) -> Iterator[dict]: ...
     def update(self, case_id: str, patch: dict) -> None: ...
     def list_for_owner(self, owner: str) -> list[dict]: ...
     def append_audit(self, case_id: str, action: str, detail: str = "") -> None: ...
@@ -59,6 +61,16 @@ class JsonCaseStore:
             self._path(case_id).write_text(
                 json.dumps(current, indent=2, default=str), encoding="utf-8"
             )
+
+    def iter_cases(self) -> Iterator[dict]:
+        """Every case, for maintenance work like retention. Yields rather than
+        building a list so a large store does not have to fit in memory."""
+        for p in sorted(self._root.glob("*.json")):
+            try:
+                yield json.loads(p.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                # One unreadable file must not stop a sweep of all the others.
+                continue
 
     def list_for_owner(self, owner: str) -> list[dict]:
         out = []

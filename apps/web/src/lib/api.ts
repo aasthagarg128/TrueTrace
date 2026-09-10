@@ -34,14 +34,19 @@ export interface Analysis {
 }
 
 export interface Evidence {
-  path: string;
-  size_bytes: number;
+  /** Absent once the package has been swept. */
+  path?: string;
+  size_bytes?: number;
   manifest_sha256: string;
   video_sha256: string;
   fetched_at: string;
-  sealed_at: string;
-  expires_at: string;
+  sealed_at?: string;
+  expires_at?: string;
   frame_count: number;
+  /** Set by the retention sweep. The archive is gone; the hashes remain. */
+  expired?: boolean;
+  expired_at?: string;
+  swept_at?: string;
 }
 
 export interface AuditEntry { at: string; action: string; detail: string }
@@ -248,6 +253,17 @@ export const BUSY_STATUSES: CaseStatus[] = [
 
 export function isBusy(status: CaseStatus) {
   return BUSY_STATUSES.includes(status);
+}
+
+/** Plain-language time remaining: "3 days", "4 hours", "under an hour". */
+export function timeUntil(iso: string): string | null {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 0) return null;
+  const hours = ms / 36e5;
+  if (hours < 1) return "under an hour";
+  if (hours < 48) return `${Math.round(hours)} hours`;
+  return `${Math.round(hours / 24)} days`;
 }
 
 /** Short, human-facing case reference: case-8f29a1b2c3d4 -> TR-8F29 */

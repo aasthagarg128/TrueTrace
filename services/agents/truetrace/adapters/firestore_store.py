@@ -70,6 +70,14 @@ class FirestoreCaseStore:
         # is missing, and a pipeline racing a deleted case should not crash.
         self._doc(case_id).set(self._trim(patch), merge=True)
 
+    def iter_cases(self):
+        """Every case, for maintenance work like retention. Streams rather than
+        fetching everything at once."""
+        for doc in self._db.collection(self._collection).stream():
+            data = doc.to_dict()
+            if data:
+                yield data
+
     def list_for_owner(self, owner: str) -> list[dict]:
         from google.cloud.firestore_v1 import FieldFilter
 

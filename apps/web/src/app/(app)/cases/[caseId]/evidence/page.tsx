@@ -1,9 +1,10 @@
 "use client";
 
 import { use } from "react";
-import { EvidenceArt } from "@/components/Art";
+import { EvidenceArt, IconClock } from "@/components/Art";
 import CaseHeader from "@/components/CaseHeader";
 import { CaseDetailSkeleton } from "@/components/Skeleton";
+import { timeUntil } from "@/lib/api";
 import { useCase } from "@/lib/useCase";
 
 export default function EvidencePage({
@@ -32,6 +33,38 @@ export default function EvidencePage({
               : "The record is sealed once analysis finishes."
           }
         />
+      ) : ev.expired ? (
+        /* The archive has been deleted on schedule. Say so plainly, and be
+           clear about what survives — the hashes are the evidentiary claim and
+           they are still here. */
+        <section className="tt-card rounded-xl border border-line p-6">
+          <h2 className="flex items-center gap-2 text-lg font-medium">
+            <IconClock className="h-5 w-5 text-attention" />
+            This evidence record has expired
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+            The sealed archive was deleted on{" "}
+            {ev.expired_at ? new Date(ev.expired_at).toLocaleDateString() : "its expiry date"},
+            as promised when it was created. The frames it contained are gone.
+          </p>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+            The fingerprints below survive, and they are the part that carries
+            evidentiary weight: they let you state that a file with this exact
+            content existed at this exact time. They reveal nothing about the video.
+          </p>
+
+          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+            <Row label="Content fingerprint (SHA-256)" value={ev.video_sha256} mono />
+            <Row label="Evidence manifest (SHA-256)" value={ev.manifest_sha256} mono />
+            <Row label="Originally recorded" value={new Date(ev.fetched_at).toLocaleString()} />
+            <Row label="Frames examined" value={String(ev.frame_count)} />
+          </dl>
+
+          <p className="mt-6 text-xs leading-relaxed text-subtle">
+            If you need a fresh sealed record of the same content, start a new case
+            with the same link — provided it is still online.
+          </p>
+        </section>
       ) : (
         <>
           <section className="tt-card rounded-xl border border-line p-6">
@@ -48,14 +81,27 @@ export default function EvidencePage({
               </div>
             </div>
 
+            {ev.expires_at && (
+              <p className="mt-5 flex items-center gap-2 rounded-lg bg-raised px-3 py-2.5 text-sm text-muted">
+                <IconClock className="h-4 w-4 shrink-0 text-accent" />
+                <span>
+                  {timeUntil(ev.expires_at)
+                    ? <>Deleted automatically in <strong className="text-ink">{timeUntil(ev.expires_at)}</strong>{" "}
+                       ({new Date(ev.expires_at).toLocaleString()}). Download anything you need before then.</>
+                    : <>Due for deletion. It will be removed at the next sweep.</>}
+                </span>
+              </p>
+            )}
+
             <dl className="mt-6 grid gap-4 sm:grid-cols-2">
               <Row label="Content fingerprint (SHA-256)" value={ev.video_sha256} mono />
               <Row label="Evidence manifest (SHA-256)" value={ev.manifest_sha256} mono />
               <Row label="Recorded" value={new Date(ev.fetched_at).toLocaleString()} />
-              <Row label="Sealed" value={new Date(ev.sealed_at).toLocaleString()} />
+              {ev.sealed_at && <Row label="Sealed" value={new Date(ev.sealed_at).toLocaleString()} />}
               <Row label="Frames sealed" value={String(ev.frame_count)} />
-              <Row label="Size" value={`${Math.round(ev.size_bytes / 1024)} KB`} />
-              <Row label="Expires" value={new Date(ev.expires_at).toLocaleString()} />
+              {ev.size_bytes != null && (
+                <Row label="Size" value={`${Math.round(ev.size_bytes / 1024)} KB`} />
+              )}
             </dl>
           </section>
 

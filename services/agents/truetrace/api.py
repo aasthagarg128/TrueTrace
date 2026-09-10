@@ -12,6 +12,7 @@ import os
 import shutil
 import tempfile
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,6 +51,7 @@ from .core.evidence import build_manifest, build_package, chain_entry
 from .core.explain import explain as gemini_explain, is_configured as gemini_configured
 from .core.frames import sample_frames
 from .core.hashing import sha256_file
+from .core.retention import sweep as sweep_expired_evidence
 from .reporting.drafter import ReportInput, draft
 
 logging.basicConfig(level=logging.INFO)
@@ -68,6 +70,34 @@ app.add_middleware(
 store = build_case_store()
 users = JsonUserStore(os.getenv("USER_STORE", "data/users"))
 mailer = build_mailer()
+
+EVIDENCE_DIR = os.getenv("EVIDENCE_DIR", "data/evidence")
+# How often expired packages are swept. Hourly is plenty for a 7-day TTL and
+# keeps the window between "expired" and "actually gone" small enough that the
+# promise on the privacy page is honest.
+RETENTION_INTERVAL_SECONDS = int(os.getenv("RETENTION_INTERVAL_SECONDS", str(60 * 60)))
+
+
+def _retention_loop() -> None:
+    """Sweep on startup, then on a timer.
+
+    A daemon thread rather than a scheduler: it adds no dependency, dies with
+    the process, and on Cloud Storage this is replaced by a bucket lifecycle
+    rule anyway. A failure here is logged and retried next tick — retention
+    must never take the API down.
+    """
+    while True:
+        try:
+            sweep_expired_evidence(store, EVIDENCE_DIR)
+        except Exception:
+            log.exception("retention sweep failed; will retry")
+        time.sleep(RETENTION_INTERVAL_SECONDS)
+
+
+@app.on_event("startup")
+def _start_retention() -> None:
+    threading.Thread(target=_retention_loop, name="retention", daemon=True).start()
+    log.info("retention sweep every %ss", RETENTION_INTERVAL_SECONDS)
 
 # Compared against when a username does not exist, so login timing does not
 # reveal whether the account is real.
@@ -471,7 +501,7 @@ def _run_pipeline(case_id: str) -> None:
             ttl_days=int(os.getenv("EVIDENCE_TTL_DAYS", "7")),
             key=EVIDENCE_KEY,
         )
-        out_dir = Path(os.getenv("EVIDENCE_DIR", "data/evidence"))
+        out_dir = Path(EVIDENCE_DIR)
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / f"{case_id}.ttz").write_bytes(pkg.blob)
         (out_dir / f"{case_id}.sha256").write_text(pkg.manifest_sha256, encoding="utf-8")

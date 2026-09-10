@@ -1,56 +1,81 @@
 @import "tailwindcss";
 
 /*
-  Palette notes.
+  Palette: plum, crimson, gold.
 
-  A low-saturation blue-green. Teal reads calm and steady rather than urgent,
-  and it avoids both red (danger) and the pink/purple coding that would gender a
-  product used by everyone.
+    #490b3d  plum     the deep ground and the ink
+    #bd1e51  crimson  the accent, on actions
+    #f1b814  gold     attention, and the highlight in dark mode
 
-  "Attention" is a warm sand, not a warning yellow. When the screening flags
-  something we want the user to look, not to panic — and given the detector's
-  measured accuracy, alarm styling would overstate what we actually know.
+  Two of the three needed a derived variant to stay legible, and it is worth
+  knowing which and why:
 
-  Every pairing is verified against WCAG AA (4.5:1 text, 3:1 large/UI, 1.5:1
-  borders) by scripts/contrast-check.py before it ships.
+  - Gold is unusable as text on a light ground (1.81:1 on white). It works as a
+    border and as a highlight on dark, where it reaches 11:1. Light-mode
+    attention text uses a darkened gold instead, and the true gold is kept for
+    the border beside it.
+  - Crimson at full strength manages only 3.29:1 on the dark ground, so dark
+    mode uses a lightened #e8467d. Button text on it is deep plum rather than
+    white, which is the pairing that actually passes (4.85:1 vs 3.75:1).
+
+  Neutrals are biased toward the plum rather than being grey, so the whole set
+  reads as one family. Every pairing verified against WCAG AA before shipping.
 */
 
 :root {
-  --canvas: #f4f8f8;
-  --surface: #ffffff;
-  --raised: #e9f0f1;
-  --line: #b9c8ce;
-  --ink: #111b1f;
-  --muted: #3f545b;
-  --subtle: #5a6f76;
-  --accent: #0f6f68;
-  --accent-2: #2a5f86;
-  --accent-soft: #d8ecea;
-  --accent-ink: #ffffff;
-  --attention: #7a5312;
-  --attention-bg: #fdf6e8;
-  --attention-line: #e2cfa6;
-  --shadow: 0 1px 2px rgb(17 27 31 / 0.04), 0 8px 24px -12px rgb(17 27 31 / 0.12);
+  --canvas:        #fbf7fa;
+  --surface:       #ffffff;
+  --raised:        #f4ebf1;
+  --line:          #d6bccd;
+  --ink:           #2b0722;
+  --muted:         #5c2a4d;
+  --subtle:        #7a4468;
+  --accent:        #bd1e51;
+  --accent-2:      #490b3d;
+  --accent-soft:   #fbe7ee;
+  --accent-ink:    #ffffff;
+  --attention:     #7a5a06;
+  --attention-bg:  #fdf5e0;
+  --attention-line:#f1b814;
+  --shadow: 0 1px 2px rgb(43 7 34 / .06), 0 12px 28px -18px rgb(43 7 34 / .30);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #0d1418;
-    --surface: #141f24;
-    --raised: #1a262c;
-    --line: #2a3a41;
-    --ink: #e9eff1;
-    --muted: #a9bfc6;
-    --subtle: #8ba3ab;
-    --accent: #5ec8b4;
-    --accent-2: #8fbde3;
-    --accent-soft: #16332f;
-    --accent-ink: #06201c;
-    --attention: #e3bd82;
-    --attention-bg: #241d10;
-    --attention-line: #4a3a21;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.7);
+  :root:not([data-theme="light"]) {
+    --canvas:        #180514;
+    --surface:       #26091f;
+    --raised:        #330e2a;
+    --line:          #542346;
+    --ink:           #f8edf4;
+    --muted:         #d5b6c9;
+    --subtle:        #b189a2;
+    --accent:        #e8467d;
+    --accent-2:      #f1b814;
+    --accent-soft:   #3d0f2e;
+    --accent-ink:    #2b0722;
+    --attention:     #f1b814;
+    --attention-bg:  #2e2208;
+    --attention-line:#6b5210;
+    --shadow: 0 1px 2px rgb(0 0 0 / .5), 0 14px 34px -20px rgb(0 0 0 / .85);
   }
+}
+
+:root[data-theme="dark"] {
+  --canvas:        #180514;
+  --surface:       #26091f;
+  --raised:        #330e2a;
+  --line:          #542346;
+  --ink:           #f8edf4;
+  --muted:         #d5b6c9;
+  --subtle:        #b189a2;
+  --accent:        #e8467d;
+  --accent-2:      #f1b814;
+  --accent-soft:   #3d0f2e;
+  --accent-ink:    #2b0722;
+  --attention:     #f1b814;
+  --attention-bg:  #2e2208;
+  --attention-line:#6b5210;
+  --shadow: 0 1px 2px rgb(0 0 0 / .5), 0 14px 34px -20px rgb(0 0 0 / .85);
 }
 
 @theme inline {

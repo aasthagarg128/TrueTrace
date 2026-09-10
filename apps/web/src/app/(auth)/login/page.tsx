@@ -93,7 +93,13 @@ export default function LoginPage() {
         }}
       />
 
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="mt-4 text-center text-sm">
+        <Link href="/forgot" className="text-accent underline underline-offset-2 hover:opacity-80">
+          Forgot your password?
+        </Link>
+      </p>
+
+      <p className="mt-4 text-center text-sm text-muted">
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="text-accent underline underline-offset-2 hover:opacity-80">
           Create account
@@ -103,9 +109,8 @@ export default function LoginPage() {
       <p className="mt-6 flex items-start gap-2 rounded-lg bg-raised px-3 py-2.5 text-xs leading-relaxed text-muted">
         <IconLock className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
         <span>
-          Your account can remain pseudonymous. There is no password reset, because
-          recovery would require contact details we deliberately never collect — keep
-          your password somewhere safe.
+          Accounts made without an email address cannot be reset — there is no address
+          to send to. If you added one, you can reset your password.
         </span>
       </p>
     </div>

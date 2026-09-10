@@ -23,13 +23,19 @@ from pydantic import BaseModel
 
 from .adapters.fetcher import FallbackFetcher
 from .adapters import JsonUserStore, build_case_store
+from .adapters.mailer import build_mailer
 from .core.auth import (
     AuthError,
     hash_password,
+    issue_reset_token,
     issue_token,
+    normalise_email,
+    peek_token_subject,
+    validate_email,
     validate_password,
     validate_username,
     verify_password,
+    verify_reset_token,
     verify_token,
 )
 from .core.crypto import EvidenceKeyError, generate_key, load_key
@@ -61,6 +67,7 @@ app.add_middleware(
 
 store = build_case_store()
 users = JsonUserStore(os.getenv("USER_STORE", "data/users"))
+mailer = build_mailer()
 
 # Compared against when a username does not exist, so login timing does not
 # reveal whether the account is real.
@@ -104,6 +111,17 @@ def healthz() -> dict:
 class Credentials(BaseModel):
     username: str
     password: str
+    # Optional. Present only when the person chose the recoverable path.
+    email: str | None = None
+
+
+class ForgotRequest(BaseModel):
+    email: str
+
+
+class ResetRequest(BaseModel):
+    token: str
+    password: str
 
 
 class GoogleCredential(BaseModel):
@@ -135,24 +153,31 @@ def _public(user: dict) -> dict:
         "username": user["username"],
         "created_at": user["created_at"],
         "auth_provider": user.get("auth_provider", "password"),
+        "email": user.get("email"),
+        "recoverable": bool(user.get("email")),
     }
 
 
 @app.post("/auth/signup", status_code=201)
 def signup(body: Credentials) -> dict:
+    email = normalise_email(body.email) if body.email else None
     try:
         validate_username(body.username)
         validate_password(body.password)
+        if email:
+            validate_email(email)
     except AuthError as exc:
         raise HTTPException(400, str(exc)) from exc
 
+    if email and users.email_taken(email):
+        raise HTTPException(409, "An account already uses that email address.")
     if users.exists(body.username):
         # Signup unavoidably reveals that a handle is taken - there is no way to
         # register otherwise. Login does NOT leak this; see below.
         raise HTTPException(409, "That username is already taken.")
 
-    user = users.create(body.username, hash_password(body.password))
-    log.info("account created %s", user["user_id"])
+    user = users.create(body.username, hash_password(body.password), email=email)
+    log.info("account created %s (recovery: %s)", user["user_id"], "email" if email else "none")
     return {"token": issue_token(user["user_id"]), "user": _public(user)}
 
 
@@ -167,6 +192,64 @@ def login(body: Credentials) -> dict:
     if not user or not ok:
         raise HTTPException(401, "Incorrect username or password.")
     return {"token": issue_token(user["user_id"]), "user": _public(user)}
+
+
+
+@app.post("/auth/forgot")
+def forgot_password(body: ForgotRequest) -> dict:
+    """Start a password reset.
+
+    Always returns the same success response, whether or not the address is
+    registered. Anything else turns this endpoint into a way to test which
+    email addresses have TrueTrace accounts, which for this product is exactly
+    the fact that must not leak.
+    """
+    email = normalise_email(body.email)
+    user = users.get_by_email(email) if email else None
+
+    if user and user.get("password_hash"):
+        token = issue_reset_token(user["user_id"], user["password_hash"])
+        base = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
+        try:
+            mailer.send_reset(email, f"{base}/reset?token={token}")
+        except Exception:
+            # Never let a mail failure change the response shape; that would
+            # reveal which addresses exist just as clearly as a 404.
+            log.exception("reset email could not be sent")
+
+    return {
+        "sent": True,
+        "detail": "If that address has an account, a reset link is on its way.",
+    }
+
+
+@app.post("/auth/reset")
+def reset_password(body: ResetRequest) -> dict:
+    """Complete a reset. The token is verified against the CURRENT password
+    hash, so it works once and dies the moment the password changes."""
+    try:
+        validate_password(body.password)
+    except AuthError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    # The claimed id is needed to find the account whose hash verifies the
+    # signature. It is untrusted until verify_reset_token succeeds below.
+    candidate = peek_token_subject(body.token)
+    user = users.get_by_id(str(candidate)) if candidate else None
+    if user is None or not user.get("password_hash"):
+        raise HTTPException(400, "This reset link is no longer valid.")
+
+    try:
+        user_id = verify_reset_token(body.token, user["password_hash"])
+    except AuthError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if user_id != user["user_id"]:
+        raise HTTPException(400, "This reset link is no longer valid.")
+
+    users.set_password(user_id, hash_password(body.password))
+    log.info("password reset for %s", user_id)
+    refreshed = users.get_by_id(user_id)
+    return {"token": issue_token(user_id), "user": _public(refreshed)}
 
 
 @app.get("/auth/me")

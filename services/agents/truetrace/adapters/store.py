@@ -6,6 +6,7 @@ the only thing that needs to change to move to Google Cloud - no caller does.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 import uuid
@@ -107,22 +108,60 @@ class JsonUserStore:
     def exists(self, username: str) -> bool:
         return self._path(username).exists()
 
-    def create(self, username: str, password_hash: str) -> dict:
+    def _email_index(self, email: str) -> Path:
+        """Emails are hashed into the filename rather than stored in it.
+
+        A directory listing should not be a list of everyone's email address —
+        for this product that listing is a target. The address still lives inside
+        the account file, but it is not readable from the filesystem layout."""
+        digest = hashlib.sha256(email.lower().encode()).hexdigest()[:32]
+        return self._root / f"email-{digest}.eidx"
+
+    def email_taken(self, email: str) -> bool:
+        return self._email_index(email).exists()
+
+    def get_by_email(self, email: str) -> dict | None:
+        idx = self._email_index(email)
+        if not idx.exists():
+            return None
+        return self.get_by_username(idx.read_text(encoding="utf-8").strip())
+
+    def create(self, username: str, password_hash: str, email: str | None = None) -> dict:
         with self._lock:
             p = self._path(username)
             if p.exists():
                 raise ValueError("username taken")
+            if email and self._email_index(email).exists():
+                raise ValueError("email taken")
             user = {
                 "user_id": f"u-{uuid.uuid4().hex[:12]}",
                 "username": username,
                 "password_hash": password_hash,
+                # None for accounts created without one. Those hold no contact
+                # details whatsoever, which is the whole point of that path.
+                "email": email.lower() if email else None,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
             p.write_text(json.dumps(user, indent=2), encoding="utf-8")
             (self._root / f"{user['user_id']}.idx").write_text(
                 username.lower(), encoding="utf-8"
             )
+            if email:
+                self._email_index(email).write_text(username.lower(), encoding="utf-8")
             return user
+
+    def set_password(self, user_id: str, password_hash: str) -> bool:
+        """Replace the stored hash. Any outstanding reset link stops working the
+        moment this lands, because reset tokens are signed with the old hash."""
+        with self._lock:
+            user = self.get_by_id(user_id)
+            if user is None:
+                return False
+            user["password_hash"] = password_hash
+            self._path(user["username"]).write_text(
+                json.dumps(user, indent=2), encoding="utf-8"
+            )
+            return True
 
     def get_by_username(self, username: str) -> dict | None:
         p = self._path(username)
@@ -168,6 +207,8 @@ class JsonUserStore:
                 return False
             self._path(user["username"]).unlink(missing_ok=True)
             (self._root / f"{user_id}.idx").unlink(missing_ok=True)
+            if user.get("email"):
+                self._email_index(user["email"]).unlink(missing_ok=True)
             return True
 
     # ---- federated identity -------------------------------------------------

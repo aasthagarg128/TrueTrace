@@ -84,6 +84,9 @@ export interface User {
   username: string;
   created_at: string;
   auth_provider?: "password" | "google";
+  /** Present only when the account was created with the recoverable option. */
+  email?: string | null;
+  recoverable?: boolean;
 }
 
 export interface AuthConfig {
@@ -163,10 +166,25 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 /* ------------------------------------------------------------------ auth */
 
-export async function signup(username: string, password: string) {
+/** `email` is optional: omitting it creates an account with no contact details. */
+export async function signup(username: string, password: string, email?: string | null) {
   return request<{ token: string; user: User }>("/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, email: email || null }),
+  });
+}
+
+export async function forgotPassword(email: string) {
+  return request<{ sent: boolean; detail: string }>("/auth/forgot", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, password: string) {
+  return request<{ token: string; user: User }>("/auth/reset", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
   });
 }
 

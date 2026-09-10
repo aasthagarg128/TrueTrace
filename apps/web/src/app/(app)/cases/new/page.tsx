@@ -157,7 +157,7 @@ export default function NewCasePage() {
           </button>
           <span className="flex items-center gap-1.5 text-xs text-subtle">
             <IconLock className="h-4 w-4 text-accent" />
-            Your case is private and pseudonymous.
+            Your case is private to your account.
           </span>
         </div>
       </form>

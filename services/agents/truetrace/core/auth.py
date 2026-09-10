@@ -11,7 +11,10 @@ account layer is written defensively even at MVP:
     handle exists is itself a leak.
   - Tokens are HMAC-signed and expire. Nothing sensitive is stored in them -
     only a user id and an expiry.
-  - We never ask for, store, or accept an email, phone number, or real name.
+  - An email address is OPTIONAL and exists only so a forgotten password can
+    be recovered. Accounts created without one hold no contact details at all,
+    and that path stays the recommended one. We never ask for a phone number,
+    real name, or date of birth on either path.
 
 Everything here is stdlib. No secret ever leaves this process.
 """
@@ -42,6 +45,17 @@ TOKEN_TTL_SECONDS = 60 * 60 * 12  # 12 hours
 
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{3,32}$")
 MIN_PASSWORD_LEN = 8
+
+# Deliberately permissive. Strict RFC-5322 validation rejects addresses that
+# work fine, and the only thing that actually proves an address is real is
+# sending to it. This catches typos, not adversaries.
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+MAX_EMAIL_LEN = 254  # RFC 5321
+
+# A reset link is a temporary key to someone's account. Short-lived on purpose:
+# a link sitting in an inbox is a standing risk for a user whose device may be
+# monitored by the person who harmed them.
+RESET_TTL_SECONDS = 30 * 60
 
 
 class AuthError(Exception):
@@ -99,6 +113,18 @@ def validate_password(password: str) -> None:
         raise AuthError(f"Password must be at least {MIN_PASSWORD_LEN} characters.")
 
 
+def normalise_email(email: str) -> str:
+    """Lowercase and trim. Stored normalised so one address cannot register twice
+    under different capitalisation."""
+    return (email or "").strip().lower()
+
+
+def validate_email(email: str) -> None:
+    email = normalise_email(email)
+    if not email or not EMAIL_RE.match(email) or len(email) > MAX_EMAIL_LEN:
+        raise AuthError("That does not look like an email address.")
+
+
 # ------------------------------------------------------------------- tokens
 
 def _secret() -> bytes:
@@ -139,3 +165,62 @@ def verify_token(token: str) -> str:
     if not sub:
         raise AuthError("invalid session")
     return str(sub)
+
+
+# ------------------------------------------------------- password reset
+
+def issue_reset_token(user_id: str, password_hash: str) -> str:
+    """A single-use, short-lived token for resetting a password.
+
+    The current password hash is mixed into the signature, so the token stops
+    working the moment the password changes. That makes it single-use without
+    needing to store used tokens anywhere, and it means an old link found in an
+    inbox months later is already dead.
+    """
+    payload = {"sub": user_id, "exp": int(time.time()) + RESET_TTL_SECONDS, "typ": "reset"}
+    body = _b64e(json.dumps(payload, separators=(",", ":")).encode())
+    sig = hmac.new(_secret() + password_hash.encode(), body.encode(), hashlib.sha256).digest()
+    return f"{body}.{_b64e(sig)}"
+
+
+def verify_reset_token(token: str, password_hash: str) -> str:
+    """Return the user id, or raise. `password_hash` must be the account's
+    CURRENT hash - a token minted against an older one no longer verifies."""
+    try:
+        body, sig = token.split(".")
+        expected = hmac.new(
+            _secret() + password_hash.encode(), body.encode(), hashlib.sha256
+        ).digest()
+        if not hmac.compare_digest(expected, _b64d(sig)):
+            raise AuthError("This reset link is no longer valid.")
+        payload = json.loads(_b64d(body))
+    except AuthError:
+        raise
+    except Exception as exc:
+        raise AuthError("This reset link is no longer valid.") from exc
+
+    if payload.get("typ") != "reset":
+        # A session token must never be usable to change a password.
+        raise AuthError("This reset link is no longer valid.")
+    if int(payload.get("exp", 0)) < time.time():
+        raise AuthError("This reset link has expired. Request a new one.")
+    sub = payload.get("sub")
+    if not sub:
+        raise AuthError("This reset link is no longer valid.")
+    return str(sub)
+
+
+def peek_token_subject(token: str) -> str | None:
+    """Read the claimed subject WITHOUT verifying anything.
+
+    Named to be impossible to misuse by accident. Reset verification needs the
+    account's current password hash to check the signature, and finding that
+    account needs the id — so the id must be read before it can be trusted. The
+    caller MUST then call verify_reset_token and compare. Never authorise
+    anything on the strength of this value alone.
+    """
+    try:
+        body = token.split(".")[0]
+        return json.loads(_b64d(body)).get("sub")
+    except Exception:
+        return None

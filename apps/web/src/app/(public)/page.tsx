@@ -32,7 +32,7 @@ const STEPS = [
 
 const PRIVACY = [
   { Icon: IconLock, title: "Encrypted evidence", body: "Sealed with AES-256-GCM. Any later alteration is detectable." },
-  { Icon: IconIncognito, title: "Pseudonymous by default", body: "No email, no real name, no phone number. Ever." },
+  { Icon: IconIncognito, title: "As private as you want", body: "Sign up with just a username. An email is optional, and only ever used to reset a password." },
   { Icon: IconCheck, title: "No forced re-exposure", body: "You never have to watch the content again to use TrueTrace." },
   { Icon: IconClock, title: "Evidence links expire", body: "Records carry a time-to-live and are not kept indefinitely." },
 ];
@@ -79,7 +79,7 @@ export default function LandingPage() {
 
           <ul className="tt-rise tt-d3 mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
             <Assurance>Privacy-first</Assurance>
-            <Assurance>Pseudonymous</Assurance>
+            <Assurance>No real name needed</Assurance>
             <Assurance>No video upload required</Assurance>
           </ul>
         </div>

@@ -14,9 +14,8 @@ import { authConfig, googleLogin, type User } from "@/lib/api";
  *     username never causes a request to Google — the "no third-party requests"
  *     property holds for them exactly as before.
  *  2. The button is never the primary action. It sits below the password form
- *     behind a divider, because choosing it trades pseudonymity toward Google
- *     for convenience, and that trade should be a decision rather than the
- *     default path.
+ *     behind a divider, because choosing it tells Google you use TrueTrace,
+ *     and that trade should be a decision rather than the default path.
  *
  * If anything fails — script blocked, no client id, network down — the
  * component renders nothing at all and the password form still works.
@@ -136,9 +135,9 @@ export default function GoogleSignIn({
       )}
 
       <p className="mt-3 text-xs leading-relaxed text-subtle">
-        Signing in with Google tells Google you use TrueTrace, and is not
-        pseudonymous toward them. We still store only an opaque account id — never
-        your name or email. For maximum privacy, use a username and password.
+        Signing in with Google tells Google you use TrueTrace. We still store only
+        an opaque account id — never your name or email. For the most privacy, sign
+        up with a username only.
       </p>
     </div>
   );

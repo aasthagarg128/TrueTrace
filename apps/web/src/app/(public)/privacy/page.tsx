@@ -12,8 +12,16 @@ const PROPERTIES = [
     body: "Only the sampled frames reach it. It receives no URL, no case id, and no account identifier, so the most sensitive material in the system travels as far as possible from anything identifying.",
   },
   {
-    title: "We collect no contact details",
-    body: "An account is a username and a password. No email, phone number, real name, date of birth, or identity document is requested or stored. This is also why a lost password cannot be recovered.",
+    title: "Contact details are optional, and that is your choice",
+    body: "You can sign up with a username and password alone, in which case we hold no way to contact you at all. You can instead add an email address, which is stored and used for exactly one thing: resetting a forgotten password. Either way we never ask for your real name, phone number, date of birth, or any identity document. The signup page states the trade-off on each option rather than burying it here.",
+  },
+  {
+    title: "Email addresses are not listed anywhere",
+    body: "When an address is stored it is indexed by a hash, so the filenames on disk are not a list of everyone's email address. The address itself lives only inside the account record, and deleting the account removes it.",
+  },
+  {
+    title: "Password reset links are short-lived and single-use",
+    body: "A link expires in 30 minutes and stops working the instant the password changes, so an old link found in an inbox is already dead. Requesting a reset returns the same response whether or not the address has an account, so the form cannot be used to check whether someone uses TrueTrace.",
   },
   {
     title: "Passwords are unreadable, including to us",

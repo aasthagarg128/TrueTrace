@@ -55,6 +55,54 @@ Also create `apps/web/.env.local`:
 echo NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 > apps/web/.env.local
 ```
 
+## Google Cloud services used
+
+Everything below is free, and none of it requires a billing account. Each one
+degrades to a local equivalent when unconfigured, so the project runs end to end
+with no Google account at all.
+
+| Service | What it does here | Cost |
+|---|---|---|
+| **Gemini** (Google AI Studio) | Rewrites screening limitations into plain language | Free tier, no billing |
+| **Firestore** | Optional cloud case storage (`CASE_BACKEND=firestore`) | Free on Firebase Spark |
+| **Google Identity Services** | Optional Google Sign-In | Free |
+| **MediaPipe** | Face detection in the detector (local, not a cloud call) | Open source |
+
+### Gemini
+
+Get a free key at <https://aistudio.google.com/apikey> and put it in `.env` as
+`GEMINI_API_KEY`. No billing account is needed.
+
+**Gemini only ever receives derived numbers** — frame counts, the peak score,
+dispersion, the band. Never a frame, never the URL, never an account id. The
+payload is built from an explicit allowlist in `core/explain.py` and re-checked
+before sending, because Google's free tier may be human-reviewed and used for
+training. Gemini also never decides the band: `scoring.py` computes it and the
+measured error rates, and Gemini rewrites that text. Unconfigured or failing, the
+template explanation is used and nothing breaks.
+
+### Firestore
+
+Free on Firebase's Spark plan. Create a Firebase project, then:
+
+```bash
+gcloud auth application-default login
+```
+
+Set `CASE_BACKEND=firestore` and `GOOGLE_CLOUD_PROJECT=` in `.env`. Both backends
+satisfy the same `CaseStore` protocol, so no calling code changes. If Firestore
+is unreachable the service logs an error and falls back to local JSON rather than
+refusing to start.
+
+### Not used, and why
+
+**Cloud Storage** and **Pub/Sub** both require a billing account, so they are not
+part of the free-tier build; evidence sits on local disk and the pipeline runs on
+a background thread. **Vertex AI Search** has no free tier at all and was replaced
+by the curated platform registry, which for four platforms is more accurate and
+cannot hallucinate a reporting URL. **Cloud Run** deployment needs billing enabled
+or one of Google AI Studio's free deployment slots.
+
 ## Google Sign-In (optional)
 
 Off by default. Accounts are username + password, which is what keeps them

@@ -22,7 +22,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 
 from .adapters.fetcher import FallbackFetcher
-from .adapters.store import JsonCaseStore, JsonUserStore
+from .adapters import JsonUserStore, build_case_store
 from .core.auth import (
     AuthError,
     hash_password,
@@ -41,6 +41,7 @@ from .core.google_auth import (
 )
 from .core.detector_client import DetectorClient
 from .core.evidence import build_manifest, build_package, chain_entry
+from .core.explain import explain as gemini_explain, is_configured as gemini_configured
 from .core.frames import sample_frames
 from .core.hashing import sha256_file
 from .reporting.drafter import ReportInput, draft
@@ -58,7 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-store = JsonCaseStore(os.getenv("CASE_STORE", "data/cases"))
+store = build_case_store()
 users = JsonUserStore(os.getenv("USER_STORE", "data/users"))
 
 # Compared against when a username does not exist, so login timing does not
@@ -92,7 +93,11 @@ def healthz() -> dict:
         det = detector.health()
     except Exception as exc:
         det = {"status": "unreachable", "error": str(exc)}
-    return {"status": "ok", "detector": det}
+    return {
+        "status": "ok",
+        "detector": det,
+        "gemini_enabled": gemini_configured(),
+    }
 
 
 
@@ -344,6 +349,17 @@ def _run_pipeline(case_id: str) -> None:
         store.update(case_id, {"status": "screening"})
         analysis = detector.score(frames)
         store.append_audit(case_id, "screened", analysis.get("band", ""))
+
+        # Gemini rewrites the template limitations into plain prose. It receives
+        # ONLY derived numbers - see core/explain.py for the allowlist - and it
+        # never decides the band. When it is unconfigured or fails, `friendly`
+        # stays None and the UI shows the template text, which is already
+        # accurate and carries the measured error rates.
+        friendly = gemini_explain(analysis, analysis.get("limitations", []))
+        if friendly:
+            analysis["explanation"] = friendly
+            analysis["explanation_source"] = "gemini"
+            store.append_audit(case_id, "explained", "gemini")
 
         store.update(case_id, {"status": "sealing"})
         named = [(f"frame_{f.index:03d}.jpg", f.jpeg) for f in frames]

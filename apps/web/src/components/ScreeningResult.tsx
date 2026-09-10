@@ -42,6 +42,16 @@ export default function ScreeningResult({ analysis }: { analysis: Analysis }) {
       <h2 className={`text-lg font-medium ${copy.accent}`}>{copy.heading}</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{copy.lead}</p>
 
+      {analysis.explanation && (
+        <div className="mt-4 rounded-lg border border-line bg-raised p-4">
+          <p className="text-sm leading-relaxed text-ink">{analysis.explanation}</p>
+          <p className="mt-2 text-xs text-subtle">
+            Written by Gemini from the measurements below. It was given no video, no
+            image, and no link &mdash; only the numbers.
+          </p>
+        </div>
+      )}
+
       <div className="mt-5 rounded-lg border border-line bg-raised p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
           What this tool can and cannot tell you

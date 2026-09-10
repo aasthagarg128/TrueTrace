@@ -28,6 +28,9 @@ export interface Analysis {
   frames: FrameResult[];
   model_version: string;
   elapsed_ms: number;
+  /** Gemini prose, when configured. The template limitations are shown regardless. */
+  explanation?: string;
+  explanation_source?: "gemini";
 }
 
 export interface Evidence {

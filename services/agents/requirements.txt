@@ -11,7 +11,10 @@ opencv-python-headless==4.10.0.84
 # already failing against YouTube with "The page needs to be reloaded".
 yt-dlp>=2026.8.19
 cryptography==44.0.0
+# Gemini, for plain-language explanations. Free tier via Google AI Studio.
 google-genai==0.5.0
+# Firestore, the optional cloud case backend. Free on Firebase's Spark plan.
 google-cloud-firestore==2.20.0
-google-cloud-storage==2.19.0
-google-cloud-pubsub==2.27.1
+# Cloud Storage and Pub/Sub were declared here but never imported. Both also
+# require a billing account, so they are not part of the free-tier build.
+# Re-add them alongside the code that actually uses them.

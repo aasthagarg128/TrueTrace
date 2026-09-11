@@ -19,4 +19,11 @@ RUN pip install --no-cache-dir \
 COPY app ./app
 
 ENV PYTHONUNBUFFERED=1
+# torch/OpenMP size their thread pool to the host's VISIBLE cpu count, which
+# on a shared cloud container is often far more than what's actually
+# allocated to this instance - each thread gets its own workspace buffers,
+# multiplying memory for no speed benefit on a free-tier single-core plan.
+# Capped after an OOM on a real deploy that never showed up in local testing
+# on a machine with different core-visibility behaviour.
+ENV OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8081}

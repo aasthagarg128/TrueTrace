@@ -29,6 +29,7 @@ but non-zero similarity.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 
 import numpy as np
@@ -36,6 +37,11 @@ import numpy as np
 from .config import settings
 
 log = logging.getLogger(__name__)
+
+# Belt and braces alongside the Dockerfile's OMP_NUM_THREADS=1: onnxruntime
+# reads this at session-creation time, so setting it here too covers any
+# import order where the Dockerfile env hasn't taken effect yet.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 
 class IdentityMatcher:

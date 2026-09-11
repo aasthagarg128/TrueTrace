@@ -18,6 +18,12 @@ import time
 
 import cv2
 import numpy as np
+import torch
+
+# Belt and braces alongside the Dockerfile's OMP_NUM_THREADS=1: torch reads
+# that at import time in most builds, but setting it explicitly here doesn't
+# depend on that happening before this module is imported.
+torch.set_num_threads(1)
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 

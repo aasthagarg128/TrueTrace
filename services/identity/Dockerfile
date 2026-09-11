@@ -15,4 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 
 ENV PYTHONUNBUFFERED=1
+# onnxruntime sizes its thread pool to the host's VISIBLE cpu count, often
+# far more than what's actually allocated on a shared cloud container - each
+# thread gets its own workspace, multiplying memory for no speed benefit on
+# a free-tier single-core plan. Capped after an OOM on a real deploy.
+ENV OMP_NUM_THREADS=1
 CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8082}

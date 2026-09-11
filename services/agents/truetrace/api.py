@@ -29,7 +29,19 @@ from pathlib import Path
 try:
     from dotenv import load_dotenv
 
-    load_dotenv(Path(__file__).resolve().parents[3] / ".env")
+    # Local dev: this file sits at <repo>/services/agents/truetrace/api.py,
+    # four levels below the repo root where .env lives. In a container that
+    # structure doesn't exist at all - the Dockerfile copies only truetrace/
+    # into /app, so this file is two levels from the filesystem root - and
+    # indexing a parents list that short raised IndexError, crashing the
+    # process before it ever got to serve a request. In production nothing
+    # should be reading a .env file anyway; config there comes from the
+    # platform's own env vars and secret files. So: try to find one, but a
+    # missing file OR a directory tree too shallow to look for it in are the
+    # same outcome, not a crash.
+    here = Path(__file__).resolve()
+    if len(here.parents) > 3:
+        load_dotenv(here.parents[3] / ".env")
 except ImportError:
     pass  # python-dotenv not installed; environment must be exported manually
 

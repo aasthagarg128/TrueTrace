@@ -7,6 +7,9 @@ numpy==1.26.4
 opencv-python-headless==4.10.0.84
 mediapipe==0.10.18
 transformers==4.47.1
+# Required for low_cpu_mem_usage=True in classifier.py - avoids briefly
+# holding two copies of the model in memory during load.
+accelerate==1.15.0
 pillow==11.0.0
 # CPU-only torch. On Linux/Docker install with:
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu

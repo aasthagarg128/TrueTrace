@@ -53,8 +53,14 @@ class HuggingFaceClassifier:
             self._processor = AutoImageProcessor.from_pretrained(
                 settings.model_id, revision=settings.model_revision
             )
+            # low_cpu_mem_usage avoids transformers' default load path, which
+            # briefly holds both a randomly-initialised model AND the loaded
+            # weights in memory at once before discarding the former. On a
+            # free-tier container running right at its memory ceiling, that
+            # transient double-allocation during startup is exactly the kind
+            # of spike that turns "fits" into "OOM-killed".
             model = AutoModelForImageClassification.from_pretrained(
-                settings.model_id, revision=settings.model_revision
+                settings.model_id, revision=settings.model_revision, low_cpu_mem_usage=True
             )
             model.eval()
             self._model = model

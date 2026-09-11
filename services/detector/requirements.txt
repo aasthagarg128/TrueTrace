@@ -7,7 +7,10 @@ numpy==1.26.4
 opencv-python-headless==4.10.0.84
 mediapipe==0.10.18
 transformers==4.47.1
-pillow==11.0.0
+# Capped by facenet-pytorch (identity.py), which requires Pillow <10.3.0.
+# Only surfaced in a clean container build: locally facenet-pytorch was
+# installed with --no-deps, which silently skipped this check.
+pillow==10.2.0
 # CPU-only torch. On Linux/Docker install with:
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
 torch==2.5.1

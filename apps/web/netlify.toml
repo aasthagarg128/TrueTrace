@@ -1,0 +1,16 @@
+# Netlify's own Next.js runtime (@netlify/plugin-nextjs) handles SSR and
+# dynamic routes automatically - no Docker, no custom build output needed.
+# This app is deliberately not statically exported (see next.config.ts):
+# /cases/[caseId] is a real dynamic route, created at runtime.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# NEXT_PUBLIC_API_URL (the deployed truetrace-api URL on Render) is set in
+# the Netlify dashboard under Site configuration > Environment variables,
+# not here - see docs/deployment.md. It has to be set BEFORE the first
+# build, since NEXT_PUBLIC_* values are baked into the client bundle at
+# build time, not read at request time.

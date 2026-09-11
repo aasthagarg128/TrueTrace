@@ -1,0 +1,54 @@
+# Render Blueprint. Connect this repo at dashboard.render.com > New >
+# Blueprint, and Render reads this file to provision both services.
+#
+# Env vars marked `sync: false` are secrets or per-deploy values Render will
+# prompt for once, on first deploy, rather than storing here in plain text -
+# see docs/deployment.md for exactly which value goes where.
+services:
+  - type: web
+    name: truetrace-detector
+    runtime: docker
+    plan: free
+    rootDir: services/detector
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: DETECTOR_SHARED_SECRET
+        generateValue: true  # Render creates a random value; copy it into
+                              # truetrace-api's own DETECTOR_SHARED_SECRET,
+                              # since the two services don't share env vars
+                              # automatically.
+
+  - type: web
+    name: truetrace-api
+    runtime: docker
+    plan: free
+    rootDir: services/agents
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: DETECTOR_URL
+        sync: false  # the truetrace-detector service's Render URL, e.g.
+                     # https://truetrace-detector.onrender.com
+      - key: DETECTOR_SHARED_SECRET
+        sync: false  # must be the SAME value truetrace-detector generated
+      - key: EVIDENCE_KEY
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: CASE_BACKEND
+        value: firestore
+      - key: GOOGLE_CLOUD_PROJECT
+        value: truetrace-508211
+      - key: FIRESTORE_COLLECTION
+        value: cases
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/firestore-key.json  # path Render mounts a
+                                                 # "Secret File" at - see
+                                                 # docs/deployment.md
+      - key: ALLOWED_ORIGINS
+        sync: false  # the deployed Netlify site's URL, once known

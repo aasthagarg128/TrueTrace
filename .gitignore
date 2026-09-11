@@ -18,6 +18,7 @@ out/
 .env.local
 *.key
 service-account*.json
+firestore-key.json
 
 # TrueTrace working data
 /tmp/

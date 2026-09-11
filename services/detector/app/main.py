@@ -7,12 +7,14 @@ system has the smallest possible blast radius.
 from __future__ import annotations
 
 import dataclasses
+import hmac
 import logging
+import os
 import time
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from .classifier import get_classifier
@@ -27,6 +29,29 @@ log = logging.getLogger(__name__)
 app = FastAPI(title="TrueTrace Detector", version="0.1.0")
 _faces: FaceDetector | None = None
 _identity: IdentityMatcher | None = None
+
+
+def require_shared_secret(authorization: str | None = Header(default=None)) -> None:
+    """This service handles the most sensitive material in the system (face
+    crops of reported content) and has no reason to be reachable by anyone
+    but the agents API. A plain shared secret, not a cloud-provider identity
+    token, because this runs on whatever host is cheapest - Cloud Run one
+    week, Render the next - and a portable check beats one tied to a
+    specific platform's metadata server.
+
+    Unset DETECTOR_SHARED_SECRET means local dev: every request passes,
+    exactly as before this existed. Set it in any real deployment.
+    """
+    secret = os.getenv("DETECTOR_SHARED_SECRET", "")
+    if not secret:
+        return
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "missing or invalid shared secret")
+    provided = authorization.split(" ", 1)[1].strip()
+    # constant-time compare: a timing side-channel on a shared secret is a
+    # real way to brute-force it request by request.
+    if not hmac.compare_digest(provided, secret):
+        raise HTTPException(401, "missing or invalid shared secret")
 
 
 @app.on_event("startup")
@@ -45,7 +70,7 @@ def healthz() -> dict:
     return {"status": "ok", "model": get_classifier().version}
 
 
-@app.post("/score")
+@app.post("/score", dependencies=[Depends(require_shared_secret)])
 async def score(frames: list[UploadFile] = File(...)) -> JSONResponse:
     started = time.monotonic()
     assert _faces is not None
@@ -84,7 +109,7 @@ async def score(frames: list[UploadFile] = File(...)) -> JSONResponse:
     return JSONResponse(payload)
 
 
-@app.post("/identity/verify")
+@app.post("/identity/verify", dependencies=[Depends(require_shared_secret)])
 async def verify_identity(
     reference: UploadFile = File(...),
     frames: list[UploadFile] = File(...),

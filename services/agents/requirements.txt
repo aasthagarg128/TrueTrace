@@ -1,6 +1,11 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
-pydantic==2.10.4
+# google-genai (below) is a floor not a pin, and a newer release since this
+# was last verified now requires pydantic>=2.12.5. Bumped from 2.10.4 after
+# a clean Render build caught the conflict fastapi/pydantic-settings/
+# google-genai all being resolved together didn't surface locally, where an
+# older cached google-genai had masked it.
+pydantic==2.12.5
 pydantic-settings==2.7.0
 python-dotenv==1.2.3
 httpx==0.28.1

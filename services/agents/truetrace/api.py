@@ -62,7 +62,7 @@ from .core.google_auth import (
     is_configured as google_configured,
     verify_credential as verify_google_credential,
 )
-from .core.detector_client import DetectorClient
+from .core.detector_client import DetectorClient, IdentityClient
 from .core.evidence import build_manifest, build_package, chain_entry
 from .core.explain import explain as gemini_explain, is_configured as gemini_configured
 from .core.feedback import FeedbackError, save as save_feedback
@@ -120,6 +120,7 @@ def _start_retention() -> None:
 # reveal whether the account is real.
 _DUMMY_HASH = hash_password("truetrace-nonexistent-account-placeholder")
 detector = DetectorClient(os.getenv("DETECTOR_URL", "http://127.0.0.1:8081"))
+identity_service = IdentityClient(os.getenv("IDENTITY_URL", "http://127.0.0.1:8082"))
 
 try:
     EVIDENCE_KEY = load_key()
@@ -147,9 +148,14 @@ def healthz() -> dict:
         det = detector.health()
     except Exception as exc:
         det = {"status": "unreachable", "error": str(exc)}
+    try:
+        ident = identity_service.health()
+    except Exception as exc:
+        ident = {"status": "unreachable", "error": str(exc)}
     return {
         "status": "ok",
         "detector": det,
+        "identity": ident,
         "gemini_enabled": gemini_configured(),
     }
 
@@ -564,7 +570,7 @@ def _run_pipeline(case_id: str, reference_photo: bytes) -> None:
         # rather than silently let an unverified case through.
         store.update(case_id, {"status": "verifying_identity"})
         try:
-            identity = detector.verify_identity(reference_photo, frames)
+            identity = identity_service.verify(reference_photo, frames)
         except Exception as exc:
             store.update(case_id, {
                 "status": "failed",

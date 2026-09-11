@@ -1,16 +1,16 @@
 """Identity-match decision logic.
 
-Same pattern as test_scoring.py: exercises the pure decision function, not the
-real embedding model - loading facenet-pytorch's ~110MB of weights has no
-place in a fast unit suite. The model itself was validated manually against
-cached real face crops; see docs/identity-matching-findings.md for those
-numbers (same-person similarity 0.80-0.91, random-noise ceiling 0.15).
+Exercises the pure decision function, not the real model - loading
+insightface's packaged weights has no place in a fast unit suite. The model
+itself was validated manually against cached real face crops; see
+app/identity.py's module docstring for those numbers (same-person
+similarity mean 0.705 / min 0.664, clean rejection on random noise).
 """
+import numpy as np
 import pytest
 
-from app.identity import cosine_similarity, decide_match
 from app.config import settings
-import numpy as np
+from app.identity import cosine_similarity, decide_match
 
 
 def test_identical_vectors_have_similarity_one():
@@ -32,17 +32,15 @@ def test_orthogonal_vectors_have_similarity_zero():
 def test_zero_vector_does_not_divide_by_zero():
     zero = np.array([0.0, 0.0, 0.0])
     other = np.array([1.0, 2.0, 3.0])
-    # Must return a plain float, never NaN or an exception - a broken
-    # embedding must fail the match, not crash the pipeline.
     assert cosine_similarity(zero, other) == 0.0
 
 
-@pytest.mark.parametrize("similarity", [0.0, 0.15, 0.39])
+@pytest.mark.parametrize("similarity", [0.0, 0.1, 0.34])
 def test_similarity_below_threshold_is_not_a_match(similarity):
     assert decide_match(similarity) is False
 
 
-@pytest.mark.parametrize("similarity", [0.40, 0.6, 0.85, 1.0])
+@pytest.mark.parametrize("similarity", [0.35, 0.5, 0.705, 1.0])
 def test_similarity_at_or_above_threshold_is_a_match(similarity):
     assert decide_match(similarity) is True
 
@@ -50,12 +48,13 @@ def test_similarity_at_or_above_threshold_is_a_match(similarity):
 def test_threshold_is_the_documented_lenient_value():
     """Pinned so a change to this safety-relevant constant is a visible,
     deliberate diff rather than an accidental one-line edit."""
-    assert settings.identity_match_threshold == pytest.approx(0.40)
+    assert settings.match_threshold == pytest.approx(0.35)
 
 
-def test_measured_noise_ceiling_is_comfortably_below_threshold():
+def test_threshold_sits_below_the_measured_genuine_match_floor():
     """Regression guard for the actual finding in identity.py's docstring:
-    random noise topped out at 0.15 against real faces. If the threshold is
-    ever lowered toward that ceiling, false accepts become likely."""
-    measured_noise_ceiling = 0.16
-    assert settings.identity_match_threshold > measured_noise_ceiling
+    real same-person pairs measured as low as 0.664. If the threshold is
+    ever raised toward that floor, ordinary photo variation starts causing
+    false rejections of real matches."""
+    measured_genuine_match_floor = 0.664
+    assert settings.match_threshold < measured_genuine_match_floor

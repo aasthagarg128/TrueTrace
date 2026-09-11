@@ -1,0 +1,15 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.10.4
+pydantic-settings==2.7.0
+# insightface pulls its own numpy/opencv requirements; pinned to the exact
+# versions this was validated against (see app/identity.py), not matched to
+# the other services' numpy==1.26.4 pin - this service's dependency tree is
+# independent of theirs.
+numpy==2.4.6
+opencv-python-headless==5.0.0.93
+# No torch. This is the entire point of this service being separate from
+# services/detector - see app/identity.py for why.
+onnxruntime==1.30.0
+insightface==2.0

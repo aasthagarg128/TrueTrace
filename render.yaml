@@ -1,5 +1,10 @@
 # Render Blueprint. Connect this repo at dashboard.render.com > New >
-# Blueprint, and Render reads this file to provision both services.
+# Blueprint, and Render reads this file to provision all three services.
+#
+# Three services, not two: the deepfake classifier (truetrace-detector) and
+# identity matching (truetrace-identity) started as one combined service and
+# were split once their combined memory footprint exceeded Render's free
+# 512MB limit - see services/identity/app/identity.py for the measurements.
 #
 # Env vars marked `sync: false` are secrets or per-deploy values Render will
 # prompt for once, on first deploy, rather than storing here in plain text -
@@ -14,10 +19,19 @@ services:
     healthCheckPath: /healthz
     envVars:
       - key: DETECTOR_SHARED_SECRET
-        generateValue: true  # Render creates a random value; copy it into
-                              # truetrace-api's own DETECTOR_SHARED_SECRET,
-                              # since the two services don't share env vars
-                              # automatically.
+        generateValue: true  # copy into truetrace-api's own var of the same
+                              # name - services don't share env vars
+
+  - type: web
+    name: truetrace-identity
+    runtime: docker
+    plan: free
+    rootDir: services/identity
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: IDENTITY_SHARED_SECRET
+        generateValue: true  # copy into truetrace-api's own var of the same name
 
   - type: web
     name: truetrace-api
@@ -28,10 +42,13 @@ services:
     healthCheckPath: /healthz
     envVars:
       - key: DETECTOR_URL
-        sync: false  # the truetrace-detector service's Render URL, e.g.
-                     # https://truetrace-detector.onrender.com
+        sync: false  # truetrace-detector's Render URL
       - key: DETECTOR_SHARED_SECRET
-        sync: false  # must be the SAME value truetrace-detector generated
+        sync: false  # SAME value truetrace-detector generated
+      - key: IDENTITY_URL
+        sync: false  # truetrace-identity's Render URL
+      - key: IDENTITY_SHARED_SECRET
+        sync: false  # SAME value truetrace-identity generated
       - key: EVIDENCE_KEY
         sync: false
       - key: AUTH_SECRET
